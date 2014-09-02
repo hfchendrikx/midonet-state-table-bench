@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+def mpiJar = project.ompiLocal + "/lib/mpi.jar"
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'MPI-Java Test Application',
+                   'Main-Class': 'org.midobench.mpitest.MPITest',
+                   'Class-Path': "${mpiJar}"
+    }
+}
+
+dependencies {
+    compile files("${mpiJar}")
+}
+

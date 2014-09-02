@@ -1,0 +1,26 @@
+project.ext {
+    versions = [java: "1.7"]
+    ompiLocal = project(':openmpi').buildDir.getAbsolutePath() +
+            "/install/opt/openMPI"
+}
+
+allprojects {
+    apply plugin: 'idea'
+
+    idea.module.iml.generateTo = file("${rootDir}/idea")
+    idea.module {
+        excludeDirs += file("${projectDir}/target")
+    }
+}
+
+idea.project {
+    languageLevel = versions.java
+    outputFile = file("${rootDir}/idea/midonet.ipr")
+}
+
+idea.module {
+    inheritOutputDirs = false
+    outputDir = file("${rootDir}/idea/out/${project.name}")
+    testOutputDir = file("${rootDir}/idea/test/${project.name}")
+}
+
