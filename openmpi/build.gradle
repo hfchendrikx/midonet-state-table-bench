@@ -1,0 +1,151 @@
+//
+// TODO: Open MPI depends on a series of tools and libraries;
+//       they should be specified somehow in the gradle file...
+// Until then, this is a non-exhaustive list:
+//   perl
+//   bash
+//   pkg-config
+//   autotools
+//   autoconf
+//   automake
+//   libtool
+//   flex
+//   make
+//   m4
+//   gcc
+//   jdk
+//   tar
+//   svn
+//   svnversion
+//
+
+apply plugin: 'base'
+
+project.ext {
+    ompiRepo    = file("ompi-trunk")
+    ompiPrefix  = file("/opt/openMPI")
+    ompiDestDir = file("${buildDir}/install")
+    ompiLocal   = file("${ompiDestDir}" + "${ompiPrefix}")
+    ompiVersion = file("${buildDir}/ompi-version")
+    ompiBuild   = file("${buildDir}/ompi-build")
+}
+
+task update {
+    outputs.file(ompiRepo)
+    doLast {
+        exec {
+            workingDir = ompiRepo
+            commandLine = ["svn", "update"]
+        }
+    }
+}
+
+task setup  {
+    inputs.file(file("${ompiRepo}/.svn"))
+    outputs.files(file("${ompiRepo}/configure"),
+                  file("${ompiRepo}/config/opal_get_version.sh"))
+    doLast {
+        exec {
+            workingDir = ompiRepo
+            commandLine = ["./autogen.pl"]
+        }
+    }
+}
+
+task version (dependsOn: 'setup') {
+    inputs.files(file("${ompiRepo}/configure"),
+                 file("${ompiRepo}/config/opal_get_version.sh"),
+                 file("${ompiRepo}/VERSION"))
+    outputs.file(ompiVersion)
+    doLast {
+        ompiVersion.getParentFile().mkdirs()
+        delete(ompiVersion)
+        def versionData = new FileOutputStream(ompiVersion)
+        exec {
+            commandLine = ["${ompiRepo}/config/opal_get_version.sh",
+                           "${ompiRepo}/VERSION", "--full"]
+            standardOutput = versionData
+        }
+    }
+}
+
+task config (dependsOn: 'version') {
+    inputs.file(ompiVersion)
+    outputs.files(file("${ompiBuild}/Makefile"),
+                  file("${ompiBuild}/ompi/Makefile"),
+                  file("${ompiBuild}/opal/Makefile"),
+                  file("${ompiBuild}/orte/Makefile"),
+                  file("${ompiBuild}/oshmem/Makefile"))
+    doLast {
+        delete(ompiBuild)
+        ompiBuild.mkdirs()
+        exec {
+            workingDir = ompiBuild
+            commandLine = ["${ompiRepo}/configure", "--prefix=${ompiPrefix}",
+                           "--enable-mpi-java", "--enable-oshmem-java"]
+        }
+    }
+}
+
+task assemble (overwrite: true, dependsOn: 'config') {
+    inputs.file(file("${ompiBuild}/Makefile"))
+    outputs.files(file("${ompiBuild}/ompi/.libs"),
+                  file("${ompiBuild}/opal/.libs"),
+                  file("${ompiBuild}/orte/.libs"),
+                  file("${ompiBuild}/oshmem/.libs"))
+    doLast {
+        exec {
+            workingDir = ompiBuild
+            commandLine = ["make"]
+        }
+    }
+}
+
+task check (dependsOn: 'assemble') {
+    inputs.files(file("${ompiBuild}/ompi/.libs"),
+                 file("${ompiBuild}/opal/.libs"),
+                 file("${ompiBuild}/orte/.libs"),
+                 file("${ompiBuild}/oshmem/.libs"))
+    doLast {
+        // Some tests are broken/unmantained, so a 'make check' will likely fail
+        // Manually run individual working tests instead
+        def maintainedTests = []
+        // def maintainedTests = ["test/support"]
+        maintainedTests.each { testDir ->
+            exec {
+                workingDir = "${ompiBuild}/${testDir}"
+                commandLine = ["make", "check"]
+            }
+        }
+    }
+}
+
+task build (dependsOn: 'check') {
+    inputs.file(ompiBuild)
+    outputs.file(ompiLocal)
+    doLast {
+        delete(ompiDestDir)
+        exec {
+            workingDir = ompiBuild
+            commandLine = ["make", "DESTDIR=${ompiDestDir}", "install"]
+        }
+    }
+}
+
+task examples (dependsOn: 'build') {
+    inputs.files(ompiLocal)
+    outputs.file(file("${ompiBuild}/examples"))
+    doLast {
+        def cmdPath = "${ompiLocal}/bin"
+        def libPath = "${ompiLocal}/lib"
+        exec {
+            environment.OPAL_DESTDIR = "${ompiDestDir}"
+            environment.LD_LIBRARY_PATH = "${libPath}"
+            environment.PATH = "${cmdPath}:" + environment.PATH
+            workingDir = "${ompiBuild}/examples"
+            commandLine = ["make"]
+        }
+    }
+}
+
+
