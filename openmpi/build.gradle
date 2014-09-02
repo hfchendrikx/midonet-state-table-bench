@@ -21,13 +21,19 @@
 
 apply plugin: 'base'
 
+defaultTasks 'build'
+
 project.ext {
-    ompiRepo    = file("ompi-trunk")
-    ompiPrefix  = file("/opt/openMPI")
-    ompiDestDir = file("${buildDir}/install")
-    ompiLocal   = file("${ompiDestDir}" + "${ompiPrefix}")
-    ompiVersion = file("${buildDir}/ompi-version")
-    ompiBuild   = file("${buildDir}/ompi-build")
+    ompiRepo     = file("ompi-trunk")
+    ompiPrefix   = file("/opt/openMPI")
+    ompiDestDir  = file("${buildDir}/install")
+    ompiLocal    = file("${ompiDestDir}" + "${ompiPrefix}")
+    ompiVersion  = file("${buildDir}/ompi-version")
+    ompiBuild    = file("${buildDir}/ompi-build")
+    ompiExamples = file("${buildDir}/ompi-examples")
+
+    mpirunWrapper = file("${buildDir}/mpirun_wrapper.sh")
+    mpiWrapper = file("${buildDir}/mpi_wrapper.sh")
 }
 
 task update {
@@ -122,29 +128,93 @@ task check (dependsOn: 'assemble') {
 
 task build (dependsOn: 'check') {
     inputs.file(ompiBuild)
-    outputs.file(ompiLocal)
+    outputs.files(ompiLocal, mpiWrapper, mpirunWrapper)
     doLast {
         delete(ompiDestDir)
+        delete(mpiWrapper)
+        delete(mpirunWrapper)
         exec {
             workingDir = ompiBuild
             commandLine = ["make", "DESTDIR=${ompiDestDir}", "install"]
         }
+
+        mpiWrapper.getParentFile().mkdirs()
+        def localEnv = new PrintWriter(mpiWrapper)
+        localEnv.println("#!/bin/bash")
+        localEnv.println("OMPI_PATH=${ompiLocal}")
+        localEnv.println("export OPAL_DESTDIR=${ompiDestDir}")
+        localEnv.println("export PATH=\$OMPI_PATH/bin:\$PATH")
+        localEnv.println(
+                "export LD_LIBRARY_PATH=\$OMPI_PATH/lib:\$LD_LIBRARY_PATH")
+        localEnv.println(
+                "export CLASSPATH=\$OMPI_PATH/lib/mpi.jar" +
+                ":\$OMPI_PATH/lib/shmem.jar" +
+                ":\$CLASSPATH")
+        localEnv.println("\$@")
+        localEnv.flush()
+        localEnv.close()
+        mpiWrapper.setExecutable(true, false)
+
+        mpirunWrapper.getParentFile().mkdirs()
+        def localMpiRun = new PrintWriter(mpirunWrapper)
+        localMpiRun.println("#!/bin/bash")
+        localMpiRun.println(
+                "${mpiWrapper} mpirun --bind-to none -prefix ${ompiLocal} \$@")
+        localMpiRun.flush()
+        localMpiRun.close()
+        mpirunWrapper.setExecutable(true, false)
     }
 }
 
 task examples (dependsOn: 'build') {
     inputs.files(ompiLocal)
-    outputs.file(file("${ompiBuild}/examples"))
+    outputs.files(ompiExamples,
+            "${ompiExamples}/connectivity_c",
+            "${ompiExamples}/Hello.class",
+            "${ompiExamples}/Ring.class",
+    )
     doLast {
-        def cmdPath = "${ompiLocal}/bin"
-        def libPath = "${ompiLocal}/lib"
+        ompiExamples.mkdirs()
+        copy {
+            from "${ompiRepo}/examples/"
+            into ompiExamples
+        }
         exec {
-            environment.OPAL_DESTDIR = "${ompiDestDir}"
-            environment.LD_LIBRARY_PATH = "${libPath}"
-            environment.PATH = "${cmdPath}:" + environment.PATH
-            workingDir = "${ompiBuild}/examples"
-            commandLine = ["make"]
+            workingDir = ompiExamples
+            commandLine = ["${mpiWrapper}", "make"]
         }
     }
 }
 
+task ex_connectivity_c (dependsOn: 'examples') {
+    inputs.files("${ompiExamples}/connectivity_c")
+    doLast {
+        exec {
+            workingDir = ompiExamples
+            commandLine = ["${mpirunWrapper}", "-np", "2",
+                           "connectivity_c"]
+        }
+    }
+}
+
+task ex_hello_java (dependsOn: 'examples') {
+    inputs.files("${ompiExamples}/Hello.class")
+    doLast {
+        exec {
+            workingDir = ompiExamples
+            commandLine = ["${mpirunWrapper}", "-np", "2",
+                           "java", "-cp", ".", "Hello"]
+        }
+    }
+}
+
+task ex_ring_java (dependsOn: 'examples') {
+    inputs.files("${ompiExamples}/Ring.class")
+    doLast {
+        exec {
+            workingDir = ompiExamples
+            commandLine = ["${mpirunWrapper}", "-np", "2",
+                           "java", "-cp", ".", "Ring"]
+        }
+    }
+}

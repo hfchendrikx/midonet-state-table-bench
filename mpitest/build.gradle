@@ -18,3 +18,15 @@ dependencies {
     compile files("${mpiJar}")
 }
 
+task runTest (dependsOn: 'build') {
+    doLast {
+        exec {
+            commandLine = [
+                    project(':openmpi').mpirunWrapper.getAbsolutePath(),
+                    "-np", "2",
+                    "java", "-jar", "${buildDir}/libs/mpitest.jar"
+            ]
+        }
+    }
+}
+
