@@ -1,10 +1,10 @@
 apply plugin: 'java'
 
 evaluationDependsOn(':openmpi')
-
 def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
                   "/lib/mpi.jar")
 
+compileJava.dependsOn(project(':openmpi').tasks.getByName('build'))
 jar {
     manifest {
         attributes 'Implementation-Title': 'MPI-Java Test Application',
@@ -14,7 +14,7 @@ jar {
 }
 
 dependencies {
-    compile project(':openmpi')
+	compile project(':openmpi')
     compile files("${mpiJar}")
 }
 
