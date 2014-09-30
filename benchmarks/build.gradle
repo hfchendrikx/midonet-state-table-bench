@@ -1,0 +1,76 @@
+apply plugin: 'java'
+apply plugin: 'protobuf'
+apply plugin: 'application'
+
+evaluationDependsOn(':openmpi')
+def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
+                  "/lib/mpi.jar")
+
+project.ext {
+    midonetVersion = "1.8-SNAPSHOT"
+    midolmanJar = "${midonetPath}/midolman/build/libs/midolman-${midonetVersion}.jar"
+    midoutilJar = "${midonetPath}/midonet-util/build/libs/midonet-util-${midonetVersion}.jar"
+    midoclusterJar = "${midonetPath}/cluster/build/libs/cluster-${midonetVersion}.jar"
+    midopacketsJar = "${midonetPath}/packets/build/libs/packets-${midonetVersion}.jar"
+
+    midonetDeps = files("${midolmanJar}",
+                        "${midoclusterJar}",
+                        "${midopacketsJar}",
+                        "${midoutilJar}")
+
+    midolmanDeps = files(
+            file("${midonetPath}/midolman/build/install/midolman/lib/")
+                    .listFiles() .findAll {it.name.endsWith('.jar')})
+}
+
+compileJava.dependsOn(project(':openmpi').tasks.getByName('build'))
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Topology Benchmark Applications'
+    }
+    from {configurations.compile.collect {it.isDirectory()? it: zipTree(it)}} {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    from {configurations.runtime.collect {it.isDirectory()? it: zipTree(it)}} {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+}
+
+dependencies {
+    compile project(':openmpi')
+    compile files("${mpiJar}")
+    compile midonetDeps
+    compile "ch.qos.logback:logback-classic:1.0.1"
+    compile "com.google.guava:guava:15.0"
+    compile "com.google.inject:guice:3.0"
+    compile "com.google.protobuf:protobuf-java:2.6.1"
+    compile "commons-cli:commons-cli:1.2"
+    compile "commons-configuration:commons-configuration:1.8"
+    compile "io.reactivex:rxjava:1.0.0-rc.7"
+    compile "javax.ws.rs:jsr311-api:1.1"
+    compile "org.apache.commons:commons-lang3:3.3"
+    compile "org.apache.curator:curator-recipes:2.6.0"
+    compile "org.scala-lang:scala-library:2.11.2"
+    compile "org.slf4j:slf4j-api:1.7.7"
+    compile dependencies.create("org.apache.zookeeper:zookeeper:3.4.6") {
+        exclude group: 'jline', module: 'jline'
+        exclude group: 'javax.jms', module: 'javax.jms'
+        exclude group: 'com.sun.jdmk', module: 'jmxtools'
+        exclude group: 'com.sun.jmx', module: 'jmxri'
+        exclude group: 'io.netty', module: 'netty'
+        exclude group: 'log4j', module: 'log4j'
+        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+
+    runtime midolmanDeps
+    runtime "org.codehaus.jackson:jackson-core-asl:1.9.3"
+    runtime "org.codehaus.jackson:jackson-mapper-asl:1.9.3"
+
+    testCompile "junit:junit:4.11"
+}
+
+

@@ -2,12 +2,64 @@ project.ext {
     versions = [java: "1.7"]
 }
 
+buildscript {
+    dependencies {
+        classpath 'com.andrewkroh.gradle:gradle-protobuf-plugin:0.3.0'
+    }
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+}
+
 allprojects {
     apply plugin: 'idea'
+
+    plugins.withType(ScalaPlugin).whenPluginAdded {
+        dependencies { compile libraries.scala }
+        tasks.withType(ScalaCompile) {
+            scalaCompileOptions.fork = true
+            scalaCompileOptions.forkOptions.jvmArgs = ['-XX:MaxPermSize=1024m']
+            scalaCompileOptions.useAnt = false
+            scalaCompileOptions.deprecation = true
+            scalaCompileOptions.unchecked = true
+            scalaCompileOptions.additionalParameters = ["-language:_"]
+        }
+        idea.module.iml.withXml { p -> addScalaLangLevelToIdea(p) }
+    }
 
     idea.module.iml.generateTo = file("${rootDir}/idea")
     idea.module {
         excludeDirs += file("${projectDir}/target")
+        excludeDirs -= buildDir
+        buildDir.listFiles().findAll{it.name != 'generated'}.each{excludeDirs += it}
+
+        ['java', 'scala', 'resources'].each { lang ->
+            def dir = file("${projectDir}/src/main/${lang}")
+            if (dir.exists()) {
+                sourceDirs += dir
+            }
+
+            ['test', 'perf'].each { type ->
+                dir = file("${projectDir}/src/${type}/${lang}")
+                if (dir.exists()) {
+                    testSourceDirs += dir
+                }
+            }
+        }
+
+        def protoDir = file("${projectDir}/src/main/proto")
+        if (protoDir.exists()) {
+            def genDir = file("${buildDir}/generated/java")
+            sourceDirs += genDir
+            idea.module.iml.withXml { p -> addProtobufFacet(p, genDir) }
+        }
+
+    }
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
     }
 }
 
@@ -22,3 +74,34 @@ idea.module {
     testOutputDir = file("${rootDir}/idea/test/${project.name}")
 }
 
+def getOrAddComponent(iml, name) {
+    iml.asNode().component.find { it.@name == name } ?:
+         iml.asNode().appendNode('component', [name: name])
+}
+
+def addScalaLangLevelToIdea(iml) {
+    def facets = getOrAddComponent(iml, 'FacetManager')
+    def scala = facets.facet.find { it.@type == 'scala' } ?:
+        facets.appendNode('facet', [type: 'scala', name: 'Scala'])
+    def config = scala.configuration ? scala.configuration[0] :
+                                       scala.appendNode('configuration', [])
+    config.option.find { it.@name == 'languageLevel' } ?:
+        config.appendNode('option', ['name': 'languageLevel',
+                                     'value': scalaLangLevel])
+}
+
+def addProtobufFacet(iml, generatedDir) {
+    def facets = getOrAddComponent(iml, 'FacetManager')
+    def protobuf = facets.facet.find { it.@type == 'protobuf' } ?:
+        facets.appendNode('facet', [type: 'protobuf', name: 'Protobuf Facet'])
+    def config = protobuf.configuration ? protobuf.configuration[0] :
+                 protobuf.appendNode('configuration', [])
+    config.option.find { it.@name == 'COMPILER_OUTPUT_SOURCE_DIRECTORY' } ?:
+    config.appendNode('option', ['name': 'COMPILER_OUTPUT_SOURCE_DIRECTORY',
+                                 'value': generatedDir])
+}
+
+task wrapper(type: Wrapper) {
+    description 'Generate wrapper, which is distributed as part of source to alleviate the need of installing gradle'
+    gradleVersion = '2.1'
+}
