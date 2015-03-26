@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Midokura SARL
+ * Copyright 2015 Midokura SARL
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,14 +31,14 @@ import org.midonet.benchmarks.configuration.BenchmarkConfig;
 import org.midonet.benchmarks.configuration.ConfigException;
 import org.midonet.benchmarks.storage.ZoomStorageService;
 import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
-import org.midonet.cluster.services.MidostoreSetupService;
+import org.midonet.cluster.services.MidonetBackend;
+import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.config.ConfigProvider;
-import org.midonet.midolman.guice.cluster.DataClusterClientModule;
-import org.midonet.midolman.guice.cluster.MidostoreModule;
-import org.midonet.midolman.guice.config.ConfigProviderModule;
-import org.midonet.midolman.guice.serialization.SerializationModule;
-import org.midonet.midolman.guice.zookeeper.ZookeeperConnectionModule;
-import org.midonet.midolman.version.guice.VersionModule;
+import org.midonet.midolman.cluster.LegacyClusterModule;
+import org.midonet.midolman.cluster.config.ConfigProviderModule;
+import org.midonet.midolman.cluster.serialization.SerializationModule;
+import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
+import org.midonet.midolman.state.ZookeeperConnectionWatcher;
 
 /**
  * This is the main application that starts the benchmark
@@ -56,10 +56,10 @@ public class ZoomTopologyBenchmark extends TopologyBenchmark {
             @Override
             protected void configure() {
                 requireBinding(ConfigProvider.class);
-                install(new ZookeeperConnectionModule());
-                install(new MidostoreModule());
-                install(new DataClusterClientModule());
-                install(new VersionModule());
+                install(new ZookeeperConnectionModule(
+                    ZookeeperConnectionWatcher.class));
+                install(new MidonetBackendModule());
+                install(new LegacyClusterModule());
                 install(new SerializationModule());
             }
         };
@@ -78,7 +78,7 @@ public class ZoomTopologyBenchmark extends TopologyBenchmark {
         throws MPIException, ConfigException {
         super(mpiSize, mpiRank, injector.getInstance(ConfigProvider.class)
               .getConfig(BenchmarkConfig.class), benchName);
-        injector.getInstance(MidostoreSetupService.class)
+        injector.getInstance(MidonetBackend.class)
                 .startAsync()
                 .awaitRunning();
 

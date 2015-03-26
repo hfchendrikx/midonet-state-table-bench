@@ -36,14 +36,14 @@ import org.midonet.cluster.data.Router;
 import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
 import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
-import org.midonet.cluster.services.MidostoreSetupService;
+import org.midonet.cluster.services.MidonetBackend;
+import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.config.ConfigProvider;
-import org.midonet.midolman.guice.cluster.DataClusterClientModule;
-import org.midonet.midolman.guice.cluster.MidostoreModule;
-import org.midonet.midolman.guice.config.ConfigProviderModule;
-import org.midonet.midolman.guice.serialization.SerializationModule;
-import org.midonet.midolman.guice.zookeeper.MockZookeeperConnectionModule;
-import org.midonet.midolman.version.guice.VersionModule;
+import org.midonet.midolman.cluster.LegacyClusterModule;
+import org.midonet.midolman.cluster.config.ConfigProviderModule;
+import org.midonet.midolman.cluster.serialization.SerializationModule;
+import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
+import org.midonet.midolman.state.ZookeeperConnectionWatcher;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -72,10 +72,10 @@ public class ZoomStorageTest {
             @Override
             protected void configure() {
                 requireBinding(ConfigProvider.class);
-                install(new MockZookeeperConnectionModule());
-                install(new MidostoreModule());
-                install(new DataClusterClientModule());
-                install(new VersionModule());
+                install(new ZookeeperConnectionModule(
+                    ZookeeperConnectionWatcher.class));
+                install(new MidonetBackendModule());
+                install(new LegacyClusterModule());
                 install(new SerializationModule());
             }
         };
@@ -88,7 +88,7 @@ public class ZoomStorageTest {
         HierarchicalConfiguration config = fillConfig(
             new HierarchicalConfiguration());
         injector = createTestInjector(config);
-        injector.getInstance(MidostoreSetupService.class)
+        injector.getInstance(MidonetBackend.class)
                 .startAsync()
                 .awaitRunning();
         CuratorFramework curator = injector.getInstance(CuratorFramework.class);

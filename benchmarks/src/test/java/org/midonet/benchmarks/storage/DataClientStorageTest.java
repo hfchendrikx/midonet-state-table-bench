@@ -35,18 +35,16 @@ import org.midonet.cluster.data.Port;
 import org.midonet.cluster.data.Router;
 import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
-import org.midonet.cluster.services.MidostoreSetupService;
+import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.midolman.Setup;
+import org.midonet.midolman.cluster.LegacyClusterModule;
+import org.midonet.midolman.cluster.config.ConfigProviderModule;
+import org.midonet.midolman.cluster.config.TypedConfigModule;
+import org.midonet.midolman.cluster.serialization.SerializationModule;
+import org.midonet.midolman.cluster.zookeeper.MockZookeeperConnectionModule;
 import org.midonet.midolman.config.MidolmanConfig;
-import org.midonet.midolman.guice.cluster.DataClusterClientModule;
-import org.midonet.midolman.guice.config.ConfigProviderModule;
-import org.midonet.midolman.guice.config.TypedConfigModule;
-import org.midonet.midolman.guice.serialization.SerializationModule;
-import org.midonet.midolman.guice.zookeeper.MockZookeeperConnectionModule;
-import org.midonet.midolman.guice.zookeeper.ZookeeperConnectionModule;
 import org.midonet.midolman.state.Directory;
 import org.midonet.midolman.state.ZookeeperConnectionWatcher;
-import org.midonet.midolman.version.guice.VersionModule;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -82,12 +80,12 @@ public class DataClientStorageTest {
         HierarchicalConfiguration config = fillConfig(
             new HierarchicalConfiguration());
         injector = Guice.createInjector(
-            new VersionModule(),
             new SerializationModule(),
             new ConfigProviderModule(config),
             new MockZookeeperConnectionModule(),
             new TypedConfigModule<>(MidolmanConfig.class),
-            new DataClusterClientModule()
+            new LegacyClusterModule(),
+            new MidonetBackendModule()
         );
         Setup.ensureZkDirectoryStructureExists(zkDir(), zkRoot);
         injector.injectMembers(this);

@@ -7,15 +7,13 @@ def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
                   "/lib/mpi.jar")
 
 project.ext {
-    midonetVersion = "1.8-SNAPSHOT"
+    midonetVersion = "2015.03-SNAPSHOT"
     midolmanJar = "${midonetPath}/midolman/build/libs/midolman-${midonetVersion}.jar"
     midoutilJar = "${midonetPath}/midonet-util/build/libs/midonet-util-${midonetVersion}.jar"
     midoclusterJar = "${midonetPath}/cluster/build/libs/cluster-${midonetVersion}.jar"
-    midopacketsJar = "${midonetPath}/packets/build/libs/packets-${midonetVersion}.jar"
 
     midonetDeps = files("${midolmanJar}",
                         "${midoclusterJar}",
-                        "${midopacketsJar}",
                         "${midoutilJar}")
 
     midolmanDeps = files(

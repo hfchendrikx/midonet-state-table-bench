@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Midokura SARL
+ * Copyright 2015 Midokura SARL
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.midonet.cluster.data.storage.ReferenceConflictException;
 import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
 import org.midonet.cluster.models.Commons;
 import org.midonet.cluster.models.Topology;
+import org.midonet.cluster.util.IPAddressUtil;
 import org.midonet.cluster.util.UUIDUtil;
 import org.midonet.packets.MAC;
 
@@ -114,9 +115,7 @@ public class ZoomStorageService implements StorageServiceSupport {
         if (bridge.hasOutboundFilterId())
             br.setOutboundFilter(fromProto(bridge.getOutboundFilterId()));
         if (bridge.hasTunnelKey())
-            br.setTunnelKey(bridge.getTunnelKey());
-        if (bridge.hasVxlanPortId())
-            br.setVxLanPortId(fromProto(bridge.getVxlanPortId()));
+            br.setTunnelKey((int) bridge.getTunnelKey());
         if (bridge.hasAdminStateUp())
             br.setAdminStateUp(bridge.getAdminStateUp());
         if (bridge.hasTenantId())
@@ -134,8 +133,6 @@ public class ZoomStorageService implements StorageServiceSupport {
         if (bridge.getOutboundFilter() != null)
             br.setOutboundFilterId(toProto(bridge.getOutboundFilter()));
         br.setTunnelKey(bridge.getTunnelKey());
-        if (bridge.getVxLanPortId() != null)
-            br.setVxlanPortId(toProto(bridge.getVxLanPortId()));
         br.setAdminStateUp(bridge.isAdminStateUp());
         if (bridge.getProperty(Bridge.Property.tenant_id) != null)
             br.setTenantId(bridge.getProperty(Bridge.Property.tenant_id));
@@ -158,7 +155,7 @@ public class ZoomStorageService implements StorageServiceSupport {
         if (port.hasPeerId())
             p.setPeerId(fromProto(port.getPeerId()));
         if (port.hasTunnelKey())
-            p.setTunnelKey(port.getTunnelKey());
+            p.setTunnelKey((int) port.getTunnelKey());
         if (port.hasVifId())
             p.setProperty(Port.Property.vif_id,
                           fromProto(port.getVifId()).toString());
@@ -181,12 +178,9 @@ public class ZoomStorageService implements StorageServiceSupport {
             p.setDeviceId(fromProto(port.getRouterId()));
         if (port.hasPortMac())
             p.setHwAddr(MAC.fromString(port.getPortMac()));
-        if (port.hasNetworkAddress())
-            p.setNwAddr(port.getNetworkAddress());
-        if (port.hasNetworkLength())
-            p.setNwLength(port.getNetworkLength());
         if (port.hasPortAddress())
-            p.setPortAddr(port.getPortAddress());
+            p.setPortAddr(IPAddressUtil.toIPv4Addr(port.getPortAddress())
+                                                       .toString());
         return p;
     }
 
@@ -226,11 +220,8 @@ public class ZoomStorageService implements StorageServiceSupport {
             p.setRouterId(toProto(port.getDeviceId()));
         if (port.getHwAddr() != null)
             p.setPortMac(port.getHwAddr().toString());
-        if (port.getNwAddr() != null)
-            p.setNetworkAddress(port.getNwAddr());
-        p.setNetworkLength(port.getNwLength());
         if (port.getPortAddr() != null)
-            p.setPortAddress(port.getPortAddr());
+            p.setPortAddress(IPAddressUtil.toProto(port.getPortAddr()));
         return p.build();
     }
 
@@ -346,7 +337,7 @@ public class ZoomStorageService implements StorageServiceSupport {
         }
     }
 
-    private <P> List<Future<P>> getAllAsList(Class<P> clazz)
+    private <P> List<P> getAllAsList(Class<P> clazz)
         throws StorageException {
         try {
             return JavaConversions.seqAsJavaList(Await.result(
@@ -360,27 +351,13 @@ public class ZoomStorageService implements StorageServiceSupport {
     public <T> List<T> getAll(Class<T> clazz) throws StorageException {
         try {
             if (Router.class.isAssignableFrom(clazz)) {
-                List<Future<Topology.Router>> src =
-                    getAllAsList(Topology.Router.class);
-                List<T> list = new ArrayList(src.size());
-                for (Future<Topology.Router> d : src) {
-                    list.add((T) fromProto(Await.result(d, Duration.Inf())));
-                }
-                return list;
+                 return (List<T>) getAllAsList(Topology.Router.class);
             } else if (Bridge.class.isAssignableFrom(clazz)) {
-                List<Future<Topology.Network>> src =
-                    getAllAsList(Topology.Network.class);
-                List<T> list = new ArrayList(src.size());
-                for (Future<Topology.Network> d : src) {
-                    list.add((T) fromProto(Await.result(d, Duration.Inf())));
-                }
-                return list;
+                return (List<T>) getAllAsList(Topology.Network.class);
             } else if (clazz.isAssignableFrom(Port.class)) {
-                List<Future<Topology.Port>> src =
-                    getAllAsList(Topology.Port.class);
+                List<Topology.Port> src = getAllAsList(Topology.Port.class);
                 List<T> list = new ArrayList(src.size());
-                for (Future<Topology.Port> d : src) {
-                    Topology.Port p = Await.result(d, Duration.Inf());
+                for (Topology.Port p : src) {
                     if (p.hasNetworkId()) {
                         list.add((T) fromProtoBridgePort(p));
                     } else {
@@ -416,7 +393,8 @@ public class ZoomStorageService implements StorageServiceSupport {
                 obs.onNext(fromProto(bridge));
             }
         };
-        return zoomClient.subscribe(Topology.Network.class, toProto(id), wrapper);
+        return zoomClient.observable(Topology.Network.class, toProto(id))
+            .subscribe(wrapper);
     }
 
     @Override
@@ -472,7 +450,7 @@ public class ZoomStorageService implements StorageServiceSupport {
                 }
             };
             subs = brStream.subscribe(obs);
-            zoomClient.subscribeAll(Topology.Network.class, mon);
+            zoomClient.observable(Topology.Network.class).subscribe(mon);
         } else {
             throw new UnsupportedOperationException(
                 "cannot subscribe to class " + clazz);
@@ -511,10 +489,9 @@ public class ZoomStorageService implements StorageServiceSupport {
         throws StorageException {
         try {
             Commons.UUID id = toProto(routerId);
-            List<Future<Topology.Port>> src = getAllAsList(Topology.Port.class);
+            List<Topology.Port> src = getAllAsList(Topology.Port.class);
             List<RouterPort> list = new ArrayList<>();
-            for (Future<Topology.Port> f : src) {
-                Topology.Port p = Await.result(f, Duration.Inf());
+            for (Topology.Port p : src) {
                 if (p.hasRouterId() && p.getRouterId() == id) {
                     list.add(fromProtoRouterPort(p));
                 }
@@ -532,10 +509,9 @@ public class ZoomStorageService implements StorageServiceSupport {
         throws StorageException {
         try {
             Commons.UUID id = toProto(bridgeId);
-            List<Future<Topology.Port>> src = getAllAsList(Topology.Port.class);
+            List<Topology.Port> src = getAllAsList(Topology.Port.class);
             List<BridgePort> list = new ArrayList<>();
-            for (Future<Topology.Port> f : src) {
-                Topology.Port p = Await.result(f, Duration.Inf());
+            for (Topology.Port p : src) {
                 if (p.hasNetworkId() && p.getNetworkId() == id) {
                     list.add(fromProtoBridgePort(p));
                 }

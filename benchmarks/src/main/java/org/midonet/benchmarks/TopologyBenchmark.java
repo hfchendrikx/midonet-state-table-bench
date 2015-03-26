@@ -50,14 +50,6 @@ import org.midonet.cluster.data.Bridge;
 import org.midonet.cluster.data.Port;
 import org.midonet.cluster.data.Router;
 import org.midonet.cluster.data.ports.BridgePort;
-import org.midonet.config.ConfigProvider;
-import org.midonet.midolman.guice.cluster.DataClusterClientModule;
-import org.midonet.midolman.guice.cluster.MidostoreModule;
-import org.midonet.midolman.guice.config.ConfigProviderModule;
-import org.midonet.midolman.guice.serialization.SerializationModule;
-import org.midonet.midolman.guice.zookeeper.ZookeeperConnectionModule;
-import org.midonet.midolman.version.guice.VersionModule;
-
 
 /**
  * This is the container of the code of the different benchmarking steps.
