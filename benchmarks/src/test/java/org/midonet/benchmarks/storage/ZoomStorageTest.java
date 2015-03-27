@@ -35,13 +35,15 @@ import org.midonet.cluster.data.Port;
 import org.midonet.cluster.data.Router;
 import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
+import org.midonet.cluster.data.storage.StorageWithOwnership;
 import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
 import org.midonet.cluster.services.MidonetBackend;
-import org.midonet.cluster.storage.MidonetBackendModule;
+import org.midonet.cluster.storage.MidonetBackendTestModule;
 import org.midonet.config.ConfigProvider;
 import org.midonet.midolman.cluster.LegacyClusterModule;
 import org.midonet.midolman.cluster.config.ConfigProviderModule;
 import org.midonet.midolman.cluster.serialization.SerializationModule;
+import org.midonet.midolman.cluster.zookeeper.MockZookeeperConnectionModule;
 import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
 import org.midonet.midolman.state.ZookeeperConnectionWatcher;
 
@@ -63,7 +65,7 @@ public class ZoomStorageTest {
         return config;
     }
 
-    private StorageServiceSupport store;
+    private ZoomStorageService store;
     private Router router;
     private Bridge bridge;
 
@@ -72,9 +74,8 @@ public class ZoomStorageTest {
             @Override
             protected void configure() {
                 requireBinding(ConfigProvider.class);
-                install(new ZookeeperConnectionModule(
-                    ZookeeperConnectionWatcher.class));
-                install(new MidonetBackendModule());
+                install(new MockZookeeperConnectionModule());
+                install(new MidonetBackendTestModule());
                 install(new LegacyClusterModule());
                 install(new SerializationModule());
             }
@@ -87,17 +88,16 @@ public class ZoomStorageTest {
     public void before() throws Exception {
         HierarchicalConfiguration config = fillConfig(
             new HierarchicalConfiguration());
+        config.setProperty("midolman.midolman_root_key", zkRoot + "/zoom");
+
         injector = createTestInjector(config);
         injector.getInstance(MidonetBackend.class)
                 .startAsync()
                 .awaitRunning();
-        CuratorFramework curator = injector.getInstance(CuratorFramework.class);
-        curator.start();
-        ZookeeperObjectMapper zoomClient = new ZookeeperObjectMapper(
-            zkRoot + "/zoom", curator);
-        ZoomStorageService zoomStore = new ZoomStorageService(zoomClient);
-        zoomStore.registerClasses();
-        store = zoomStore;
+
+        store = new ZoomStorageService(
+            injector.getInstance(MidonetBackend.class).ownershipStore());
+        store.registerClasses();
         router = store.create(new Router());
         bridge = store.create(new Bridge());
     }

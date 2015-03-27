@@ -35,6 +35,7 @@ import org.midonet.cluster.data.Router;
 import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
 import org.midonet.cluster.data.storage.ReferenceConflictException;
+import org.midonet.cluster.data.storage.StorageWithOwnership;
 import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
 import org.midonet.cluster.models.Commons;
 import org.midonet.cluster.models.Topology;
@@ -44,7 +45,6 @@ import org.midonet.packets.MAC;
 
 import scala.collection.JavaConversions;
 import scala.concurrent.Await;
-import scala.concurrent.Future;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -55,13 +55,13 @@ public class ZoomStorageService implements StorageServiceSupport {
     private final static Logger log =
         LoggerFactory.getLogger(ZoomStorageService.class);
 
-    private final ZookeeperObjectMapper zoomClient;
+    private final StorageWithOwnership zoomClient;
 
     private final Subject<EntityIdSetEvent<UUID>, EntityIdSetEvent<UUID>>
         brStream = PublishSubject.create();
 
-    public ZoomStorageService(ZookeeperObjectMapper zoomClient) {
-        this.zoomClient = zoomClient;
+    public ZoomStorageService(StorageWithOwnership storage) {
+        this.zoomClient = storage;
     }
 
     private UUID fromProto(Commons.UUID uuid) {
