@@ -4,6 +4,7 @@
 idea/
 gradle/
 gradlew
+gradle.properties
 gradlew.bat
 midokura-benchmarks.iml
 midokura-benchmarks.iws
