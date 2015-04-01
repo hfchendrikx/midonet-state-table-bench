@@ -1,5 +1,7 @@
 package org.midonet.benchmarks;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.zookeeper.KeeperException;
@@ -66,39 +68,51 @@ public class LatencyBench extends MapSetBenchmark {
         }
     }
 
-    private void arpBench() throws InterruptedException {
+    private List<Long> arpBench() throws InterruptedException {
+        List<Long> latencies = new LinkedList<>();
         ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
             new ReplicatedMapWatcher<>();
         arpTable.addWatcher(arpWatcher);
 
         for (int i = 0; i < writeCount; i++) {
+            long start = System.currentTimeMillis();
             IPv4Addr ip = randomExistingIP();
             arpTable.put(ip, randomArpEntry());
             arpWatcher.waitForResult();
             arpWatcher.resetLatch();
+            long end = System.currentTimeMillis();
+            latencies.add(end-start);
         }
+        return latencies;
     }
 
-    private void macBench() throws InterruptedException {
+    private List<Long> macBench() throws InterruptedException {
+        List<Long> latencies = new LinkedList<>();
         ReplicatedMapWatcher<MAC, UUID> macWatcher =
             new ReplicatedMapWatcher<>();
         macTable.addWatcher(macWatcher);
 
         for (int i = 0; i < writeCount; i++) {
+            long start = System.currentTimeMillis();
             MAC mac = randomExistingMAC();
             macTable.put(mac, UUID.randomUUID());
             macWatcher.waitForResult();
             macWatcher.resetLatch();
+            long end = System.currentTimeMillis();
+            latencies.add(end - start);
         }
+        return latencies;
     }
 
-    private void routeBench() throws InterruptedException,
+    private List<Long> routeBench() throws InterruptedException,
                                      SerializationException {
 
+        List<Long> latencies = new LinkedList<>();
         ReplicatedSetWatcher routeWatcher = new ReplicatedSetWatcher();
         routeSet.addWatcher(routeWatcher);
 
         for (int i = 0; i < writeCount; i++) {
+            long start = System.currentTimeMillis();
             if (rnd.nextInt(2) == 0) {
                 Route route = randomExistingRoute();
                 routeSet.remove(route);
@@ -108,31 +122,37 @@ public class LatencyBench extends MapSetBenchmark {
             }
             routeWatcher.waitForResult();
             routeWatcher.resetLatch();
+            long end = System.currentTimeMillis();
+            latencies.add(end - start);
         }
+        return latencies;
     }
 
     protected void run() {
         try {
             populateTable();
 
-            double start = System.currentTimeMillis();
+            List<Long> latencies = null;
+
             switch (storageType) {
                 case ARP_TABLE:
-                    arpBench();
+                    latencies = arpBench();
                     break;
 
                 case MAC_TABLE:
-                    macBench();
+                    latencies = macBench();
                     break;
 
                 case ROUTING_TABLE:
-                    routeBench();
+                    latencies = routeBench();
                     break;
             }
-            double end = System.currentTimeMillis();
-            double avgLatency = (end - start) / ((double) writeCount);
-            results.put("Avg. Latency in ms", avgLatency);
 
+            results.put("Avg. Latency in ms", Utils.mean(latencies));
+            results.put("Std. deviation of latency in ms",
+                        Utils.standardDeviation(latencies));
+            results.put("90% percentile of latency in ms",
+                        Utils.percentile(latencies, 0.9f));
             printResults(log);
         } catch (Exception e) {
             log.error("Exception caught while running benchmark", e);
