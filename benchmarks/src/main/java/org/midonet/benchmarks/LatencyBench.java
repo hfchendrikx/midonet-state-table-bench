@@ -1,10 +1,16 @@
 package org.midonet.benchmarks;
 
+import java.util.UUID;
+
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.midonet.midolman.layer3.Route;
+import org.midonet.midolman.serialization.SerializationException;
+import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
+import org.midonet.packets.MAC;
 
 /**
  * This class implements the LatencyBench described in the following document:
@@ -37,31 +43,100 @@ public class LatencyBench extends MapSetBenchmark {
         return arpTableKeys.get(rnd.nextInt(dataSize));
     }
 
-    protected void run() throws InterruptedException {
-        populateArpTable(arpTable);
+    private MAC randomExistingMAC() {
+        return macTableKeys.get(rnd.nextInt(dataSize));
+    }
 
-        double start = System.currentTimeMillis();
+    private Route randomExistingRoute() {
+        return routes.get(rnd.nextInt(dataSize));
+    }
+
+    private void populateTable() throws InterruptedException,
+                                        SerializationException {
+        switch (storageType) {
+            case ARP_TABLE:
+                populateArpTable();
+                break;
+            case MAC_TABLE:
+                populateMacTable();
+                break;
+            case ROUTING_TABLE:
+                populateRouteSet();
+                break;
+        }
+    }
+
+    private void arpBench() throws InterruptedException {
+        ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
+            new ReplicatedMapWatcher<>();
+        arpTable.addWatcher(arpWatcher);
+
         for (int i = 0; i < writeCount; i++) {
-            switch(storageType) {
+            IPv4Addr ip = randomExistingIP();
+            arpTable.put(ip, randomArpEntry());
+            arpWatcher.waitForResult();
+            arpWatcher.resetLatch();
+        }
+    }
+
+    private void macBench() throws InterruptedException {
+        ReplicatedMapWatcher<MAC, UUID> macWatcher =
+            new ReplicatedMapWatcher<>();
+        macTable.addWatcher(macWatcher);
+
+        for (int i = 0; i < writeCount; i++) {
+            MAC mac = randomExistingMAC();
+            macTable.put(mac, UUID.randomUUID());
+            macWatcher.waitForResult();
+            macWatcher.resetLatch();
+        }
+    }
+
+    private void routeBench() throws InterruptedException,
+                                     SerializationException {
+
+        ReplicatedSetWatcher routeWatcher = new ReplicatedSetWatcher();
+        routeSet.addWatcher(routeWatcher);
+
+        for (int i = 0; i < writeCount; i++) {
+            if (rnd.nextInt(2) == 0) {
+                Route route = randomExistingRoute();
+                routeSet.remove(route);
+
+            } else {
+                routeSet.add(randomRoute());
+            }
+            routeWatcher.waitForResult();
+            routeWatcher.resetLatch();
+        }
+    }
+
+    protected void run() {
+        try {
+            populateTable();
+
+            double start = System.currentTimeMillis();
+            switch (storageType) {
                 case ARP_TABLE:
-                    IPv4Addr ip = randomExistingIP();
-                    arpTable.put(ip, randomArpEntry());
-                    arpTable.addWatcher(arpWatcher);
-                    arpWatcher.waitForResult();
-                    arpWatcher.resetLatch();
+                    arpBench();
                     break;
 
                 case MAC_TABLE:
+                    macBench();
                     break;
+
                 case ROUTING_TABLE:
+                    routeBench();
                     break;
             }
-        }
-        double end = System.currentTimeMillis();
-        double avgLatency = (end - start) / ((double) writeCount);
-        results.put("Avg. Latency in ms", avgLatency);
+            double end = System.currentTimeMillis();
+            double avgLatency = (end - start) / ((double) writeCount);
+            results.put("Avg. Latency in ms", avgLatency);
 
-        printResults(log);
+            printResults(log);
+        } catch (Exception e) {
+            log.error("Exception caught while running benchmark", e);
+        }
     }
 
     public static void main(String[] args) {

@@ -1,0 +1,29 @@
+width=65
+height=60
+set output "latencyBench.jpg"
+set terminal jpeg
+set key noreverse enhanced autotitles nobox
+unset ylabel
+set size width/100., height/100.
+set ylabel 'Latency (ms)' offset 2,0
+set xlabel 'Table Size'
+set xtics nomirror
+set ytics nomirror
+set yrange [0:100]
+set xrange [1:1000]
+set logscale x
+set ytics 10 
+set lmargin 6.3
+
+set style line 1 lw 2 lc rgb "red" lt 11 pt 1
+set style line 2 lw 2 lc rgb "blue" lt 11 pt 2
+set style line 3 lw 2 lc rgb "#008A00" lt 11 pt 9 
+set style line 4 lw 2 lc rgb "orange" lt 11 pt 7
+set style line 5 lw 2 lc rgb "#D2691E" lt 11 pt 5
+set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
+
+unset label
+set key font ",5"
+
+plot "arptable.txt" notitle with linespoints ls 3, "mactable.txt" notitle with linespoints ls 4
+
