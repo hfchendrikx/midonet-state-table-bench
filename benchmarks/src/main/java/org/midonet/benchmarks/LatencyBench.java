@@ -147,7 +147,6 @@ public class LatencyBench extends MapSetBenchmark {
                     latencies = routeBench();
                     break;
             }
-
             results.put("Avg. Latency in ms", Utils.mean(latencies));
             results.put("Std. deviation of latency in ms",
                         Utils.standardDeviation(latencies));

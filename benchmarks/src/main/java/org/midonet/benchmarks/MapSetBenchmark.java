@@ -8,14 +8,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.typesafe.config.Config;
 
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -23,10 +20,13 @@ import org.apache.zookeeper.ZooDefs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.midonet.cluster.storage.MidonetBackendConfig;
 import org.midonet.cluster.storage.MidonetBackendModule;
+import org.midonet.conf.MidoNodeConfigurator;
 import org.midonet.midolman.cluster.LegacyClusterModule;
 import org.midonet.midolman.cluster.serialization.SerializationModule;
 import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
+import org.midonet.midolman.guice.config.MidolmanConfigModule;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.serialization.Serializer;
@@ -35,7 +35,6 @@ import org.midonet.midolman.state.ArpTable;
 import org.midonet.midolman.state.Directory;
 import org.midonet.midolman.state.DirectoryCallback;
 import org.midonet.midolman.state.MacPortMap;
-import org.midonet.midolman.state.PathBuilder;
 import org.midonet.midolman.state.ReplicatedMap;
 import org.midonet.midolman.state.ReplicatedSet;
 import org.midonet.midolman.state.ZkConnection;
@@ -84,13 +83,10 @@ public abstract class MapSetBenchmark {
         Injector injector = createInjector(configFile);
         this.serializer = injector.getInstance(Serializer.class);
         ZkConnection zkConn = injector.getInstance(ZkConnection.class);
-        PathBuilder pathBldr = injector.getInstance(PathBuilder.class);
-
-        // TODO: Obtain the zk root path from the config
-        // MidolmanConfig conf = injector.getInstance(MidolmanConfig.class);
-        //((MidonetBackendConfig) conf.zookeeper()).root_key...
+        MidonetBackendConfig config =
+            injector.getInstance(MidonetBackendConfig.class);
         ZkDirectory zkDir =
-            new ZkDirectory(zkConn, pathBldr.getBasePath(), null /* ACL */,
+            new ZkDirectory(zkConn, config.rootKey(), null /* ACL */,
                             new TryCatchReactor("Zookeeper", 1));
         prepareZkPaths(zkDir, zkConn);
 
@@ -230,17 +226,16 @@ public abstract class MapSetBenchmark {
         }
     }
 
-    private static Injector createInjector(final String configFilePath) {
+    private static Injector createInjector(final String configFile) {
         AbstractModule benchModule = new AbstractModule() {
             @Override
             protected void configure() {
+                Config config =
+                    MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+                install(new MidolmanConfigModule(config));
+                install(new MidonetBackendModule(config));
                 install(new ZookeeperConnectionModule(
                     ZookeeperConnectionWatcher.class));
-                // This installs a default configuration where ZK is expected
-                // to run locally unless a configuration is found in
-                // ~/.midonetrc, /etc/midolman/midolman/conf,
-                // or /etc/midonet/midonet.conf.
-                install(MidonetBackendModule.apply());
                 install(new LegacyClusterModule());
                 install(new SerializationModule());
             }

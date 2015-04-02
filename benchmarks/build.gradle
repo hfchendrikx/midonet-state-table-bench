@@ -42,7 +42,10 @@ dependencies {
     compile project(':openmpi')
     compile files("${mpiJar}")
     compile midonetDeps
+    compile "com.typesafe.scala-logging:scala-logging_2.11:3.1.0"
     compile "com.typesafe:config:1.2.1"
+    compile "io.dropwizard.metrics:metrics-core:3.1.0"
+    compile "io.dropwizard.metrics:metrics-ganglia:3.1.0"
     compile "org.infinispan:infinispan-commons:7.0.2.Final"
     compile "ch.qos.logback:logback-classic:1.0.1"
     compile "com.google.guava:guava:15.0"
