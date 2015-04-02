@@ -17,6 +17,7 @@ import com.typesafe.config.Config;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,8 +87,8 @@ public abstract class MapSetBenchmark {
         MidonetBackendConfig config =
             injector.getInstance(MidonetBackendConfig.class);
         ZkDirectory zkDir =
-            new ZkDirectory(zkConn, config.rootKey(), null /* ACL */,
-                            new TryCatchReactor("Zookeeper", 1));
+            new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
+                            null /* ACL */, new TryCatchReactor("Zookeeper", 1));
         prepareZkPaths(zkDir, zkConn);
 
         switch (storageType) {
@@ -243,43 +244,39 @@ public abstract class MapSetBenchmark {
         return Guice.createInjector(benchModule);
     }
 
-    private void createZkBasePath(ZkDirectory zkDir, ZkConnection zkConn)
-        throws InterruptedException, KeeperException {
-
-        String basePath = zkDir.getPath();
-        String[] paths = basePath.split("/");
-        StringBuffer absPath = new StringBuffer();
-
-        for (String path : paths) {
-            if (!path.isEmpty()) {
-                zkConn.getZooKeeper().create(absPath.toString() + "/" + path,
-                                             new byte[0],
-                                             ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                                             CreateMode.PERSISTENT);
-                absPath.append("/" + path);
-            }
-        }
-    }
-
     private void prepareZkPaths(ZkDirectory zkDir, ZkConnection zkConn) {
-        try {
-            log.info("***ZK base path: {}", zkDir.getPath());
 
-            // Delete any left over children.
-            if (zkDir.exists("", new Directory.DefaultTypedWatcher())) {
-                Set<String> children =
-                    zkDir.getChildren("", null /* watcher */);
-                for (String child : children) {
-                    zkDir.delete("/" + child);
+        try {
+            // Create the necessary paths
+            String basePath = zkDir.getPath();
+            String[] paths = basePath.split("/");
+            StringBuffer absPath = new StringBuffer();
+            ZooKeeper zk = zkConn.getZooKeeper();
+
+            for (String path : paths) {
+                if (!path.isEmpty()) {
+                    absPath.append("/" + path);
+
+                    if (zk.exists(absPath.toString(), false /* watch */) == null) {
+                        zkConn.getZooKeeper()
+                            .create(absPath.toString(), new byte[0],
+                                    ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                                    CreateMode.PERSISTENT);
+                    }
                 }
-            // Else create the parent directory.
-            } else {
-                createZkBasePath(zkDir, zkConn);
+            }
+
+            // Delete any left-over children
+            Set<String> children =
+                zkDir.getChildren("", new Directory.DefaultTypedWatcher());
+            for (String child: children) {
+                zkDir.delete("/" + child);
             }
         } catch (Exception e) {
             log.error("Exception was caught when initializing the Zookeeper"
                       + " directory", e);
         }
+        log.info("***ZK maps/sets path: {}", zkDir.getPath());
     }
 
     private void initArpTable(ZkDirectory zkDir) {
