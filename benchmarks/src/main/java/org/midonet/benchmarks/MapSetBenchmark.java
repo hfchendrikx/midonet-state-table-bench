@@ -1,6 +1,7 @@
 package org.midonet.benchmarks;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,6 +9,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -29,6 +33,7 @@ import org.midonet.midolman.serialization.Serializer;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.midolman.state.ArpTable;
 import org.midonet.midolman.state.Directory;
+import org.midonet.midolman.state.DirectoryCallback;
 import org.midonet.midolman.state.MacPortMap;
 import org.midonet.midolman.state.PathBuilder;
 import org.midonet.midolman.state.ReplicatedMap;
@@ -64,7 +69,7 @@ public abstract class MapSetBenchmark {
     protected MacPortMap macTable;
     protected Map<Integer, MAC> macTableKeys;
     protected ReplicatedRouteSet routeSet;
-    protected Map<Integer, Route> routes;
+    protected ArrayList<Route> routes;
     protected Random rnd;
 
     public MapSetBenchmark(StorageType storageType, String configFile,
@@ -127,9 +132,34 @@ public abstract class MapSetBenchmark {
 
     protected class ReplicatedRouteSet extends ReplicatedSet<Route> {
         RouteEncoder encoder = new RouteEncoder();
+        Directory dir;
 
         public ReplicatedRouteSet(Directory d, CreateMode mode) {
             super(d, mode);
+            dir = d;
+        }
+
+        class DeleteCallback implements DirectoryCallback.Void {
+            private Route item;
+
+            private DeleteCallback(Route item) {
+                this.item = item;
+            }
+
+            @Override
+            public void onSuccess(java.lang.Void data) {
+                log.debug("ReplicatedSet delete {} succeeded", item);
+            }
+
+            @Override
+            public void onTimeout() {
+                log.error("ReplicatedSet delete {} timed out.", item);
+            }
+
+            @Override
+            public void onError(KeeperException e) {
+                log.error("ReplicatedSet Delete {} failed", item, e);
+            }
         }
 
         @Override
@@ -141,23 +171,38 @@ public abstract class MapSetBenchmark {
         protected Route decode(String str) {
             return encoder.decode(str);
         }
+
+        /**
+         * We override this method because the one in ReplicatedSet is buggy:
+         * it does not convert the relative path into an absolute one.
+         */
+        @Override
+        public void remove(Route route) throws SerializationException {
+            String absPath = dir.getPath() + "/" + this.encode(route);
+            this.dir.asyncDelete(absPath, new DeleteCallback(route));
+        }
     }
 
     protected static class ReplicatedMapWatcher<K, V>
         implements ReplicatedMap.Watcher<K, V> {
 
         long rcvTime;
-        private CountDownLatch latch = new CountDownLatch(1);
+        private boolean updateRcvd = false;
 
         public void processChange(K var1, V var2, V var3) {
             rcvTime = System.currentTimeMillis();
-            latch.countDown();
-        }
-        protected void resetLatch() {
-            latch = new CountDownLatch(1);
+            synchronized (this) {
+                updateRcvd = true;
+                notify();
+            }
         }
         protected void waitForResult() throws InterruptedException {
-            latch.await();
+            synchronized (this) {
+                while (!updateRcvd) {
+                    wait();
+                }
+                updateRcvd = false;
+            }
         }
     }
 
@@ -165,18 +210,23 @@ public abstract class MapSetBenchmark {
         implements ReplicatedSet.Watcher<Route> {
 
         long rcvTime;
-        private CountDownLatch latch = new CountDownLatch(1);
+        private boolean updateRcvd = false;
 
         public void process(Collection<Route> added, Collection<Route> removed) {
             rcvTime = System.currentTimeMillis();
-            latch.countDown();
+            synchronized (this) {
+                updateRcvd = true;
+                notify();
+            }
         }
 
-        protected void resetLatch() {
-            latch = new CountDownLatch(1);
-        }
         protected void waitForResult() throws InterruptedException {
-            latch.await();
+            synchronized (this) {
+                while (!updateRcvd) {
+                    wait();
+                }
+                updateRcvd = false;
+            }
         }
     }
 
@@ -218,7 +268,7 @@ public abstract class MapSetBenchmark {
 
     private void prepareZkPaths(ZkDirectory zkDir, ZkConnection zkConn) {
         try {
-            log.info("*** base path: {}", zkDir.getPath());
+            log.info("***ZK base path: {}", zkDir.getPath());
 
             // Delete any left over children.
             if (zkDir.exists("", new Directory.DefaultTypedWatcher())) {
@@ -255,7 +305,6 @@ public abstract class MapSetBenchmark {
             arpTable.put(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
             arpWatcher.waitForResult();
-            arpWatcher.resetLatch();
         }
         arpTable.removeWatcher(arpWatcher);
         long end = System.currentTimeMillis();
@@ -280,7 +329,6 @@ public abstract class MapSetBenchmark {
             macTable.put(mac, UUID.randomUUID());
             macTableKeys.put(i, mac);
             macWatcher.waitForResult();
-            macWatcher.resetLatch();
         }
         macTable.removeWatcher(macWatcher);
         long end = System.currentTimeMillis();
@@ -295,7 +343,8 @@ public abstract class MapSetBenchmark {
             log.error("Unable to update the route set version", e);
         }
         routeSet = new ReplicatedRouteSet(zkDir, CreateMode.EPHEMERAL);
-        routes = new HashMap<>(dataSize);
+        routeSet.start();
+        routes = new ArrayList<>(dataSize);
     }
 
     protected void populateRouteSet()
@@ -308,10 +357,9 @@ public abstract class MapSetBenchmark {
         long start = System.currentTimeMillis();
         for (int i=0; i < dataSize; i++) {
             Route route = randomRoute();
-            routes.put(1, route);
+            routes.add(route);
             routeSet.add(route);
             routeWatcher.waitForResult();
-            routeWatcher.resetLatch();
         }
         routeSet.removeWatcher(routeWatcher);
         long end = System.currentTimeMillis();
@@ -350,7 +398,7 @@ public abstract class MapSetBenchmark {
     protected Route randomRoute() {
         int srcAddr = IPv4Addr.random().toInt();
         int dstAddr = IPv4Addr.random().toInt();
-        int nextHopGtw = IPv4Addr.random().toInt();
+        int nextHopGtw = 0; //IPv4Addr.random().toInt();
 
         return new Route(srcAddr, 24 /* srcNetLength */, dstAddr,
                          24 /* destNetLength */, Route.NextHop.PORT,

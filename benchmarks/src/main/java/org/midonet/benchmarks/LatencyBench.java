@@ -49,8 +49,9 @@ public class LatencyBench extends MapSetBenchmark {
         return macTableKeys.get(rnd.nextInt(dataSize));
     }
 
-    private Route randomExistingRoute() {
-        return routes.get(rnd.nextInt(dataSize));
+    private Route removeRndRoute() {
+        int index = rnd.nextInt(routes.size());
+        return routes.remove(index);
     }
 
     private void populateTable() throws InterruptedException,
@@ -79,7 +80,6 @@ public class LatencyBench extends MapSetBenchmark {
             IPv4Addr ip = randomExistingIP();
             arpTable.put(ip, randomArpEntry());
             arpWatcher.waitForResult();
-            arpWatcher.resetLatch();
             long end = System.currentTimeMillis();
             latencies.add(end-start);
         }
@@ -97,7 +97,6 @@ public class LatencyBench extends MapSetBenchmark {
             MAC mac = randomExistingMAC();
             macTable.put(mac, UUID.randomUUID());
             macWatcher.waitForResult();
-            macWatcher.resetLatch();
             long end = System.currentTimeMillis();
             latencies.add(end - start);
         }
@@ -114,14 +113,15 @@ public class LatencyBench extends MapSetBenchmark {
         for (int i = 0; i < writeCount; i++) {
             long start = System.currentTimeMillis();
             if (rnd.nextInt(2) == 0) {
-                Route route = randomExistingRoute();
+                Route route = removeRndRoute();
                 routeSet.remove(route);
 
             } else {
-                routeSet.add(randomRoute());
+                Route route = randomRoute();
+                routeSet.add(route);
+                routes.add(route);
             }
             routeWatcher.waitForResult();
-            routeWatcher.resetLatch();
             long end = System.currentTimeMillis();
             latencies.add(end - start);
         }

@@ -6,13 +6,13 @@ set key noreverse enhanced autotitles nobox
 unset ylabel
 set size width/100., height/100.
 set ylabel 'Latency (ms)' offset 2,0
-set xlabel 'Table Size'
+set xlabel 'Size'
 set xtics nomirror
 set ytics nomirror
-set yrange [0:100]
-set xrange [1:1000]
+set yrange [0:150]
+set xrange [10:50000]
 set logscale x
-set ytics 10 
+set ytics 30 
 set lmargin 6.3
 
 set style line 1 lw 2 lc rgb "red" lt 11 pt 1
@@ -23,7 +23,6 @@ set style line 5 lw 2 lc rgb "#D2691E" lt 11 pt 5
 set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
 
 unset label
-set key font ",5"
 
-plot "arptable.txt" notitle with linespoints ls 3, "mactable.txt" notitle with linespoints ls 4
+plot "arptable.txt" using 1:2:3 with yerrorbars title 'ARP' ls 3, "mactable.txt" title 'MAC' with linespoints ls 4
 
