@@ -69,13 +69,13 @@ public class LatencyBench extends MapSetBenchmark {
         }
     }
 
-    private List<Long> arpBench() throws InterruptedException {
+    private List<Long> arpBench(int opCount) throws InterruptedException {
         List<Long> latencies = new LinkedList<>();
         ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
             new ReplicatedMapWatcher<>();
         arpTable.addWatcher(arpWatcher);
 
-        for (int i = 0; i < writeCount; i++) {
+        for (int i = 0; i < opCount; i++) {
             long start = System.currentTimeMillis();
             IPv4Addr ip = randomExistingIP();
             arpTable.put(ip, randomArpEntry());
@@ -86,13 +86,13 @@ public class LatencyBench extends MapSetBenchmark {
         return latencies;
     }
 
-    private List<Long> macBench() throws InterruptedException {
+    private List<Long> macBench(int opCount) throws InterruptedException {
         List<Long> latencies = new LinkedList<>();
         ReplicatedMapWatcher<MAC, UUID> macWatcher =
             new ReplicatedMapWatcher<>();
         macTable.addWatcher(macWatcher);
 
-        for (int i = 0; i < writeCount; i++) {
+        for (int i = 0; i < opCount; i++) {
             long start = System.currentTimeMillis();
             MAC mac = randomExistingMAC();
             macTable.put(mac, UUID.randomUUID());
@@ -103,14 +103,14 @@ public class LatencyBench extends MapSetBenchmark {
         return latencies;
     }
 
-    private List<Long> routeBench() throws InterruptedException,
-                                     SerializationException {
+    private List<Long> routeBench(int opCount) throws InterruptedException,
+                                                      SerializationException {
 
         List<Long> latencies = new LinkedList<>();
         ReplicatedSetWatcher routeWatcher = new ReplicatedSetWatcher();
         routeSet.addWatcher(routeWatcher);
 
-        for (int i = 0; i < writeCount; i++) {
+        for (int i = 0; i < opCount; i++) {
             long start = System.currentTimeMillis();
             if (rnd.nextInt(2) == 0) {
                 Route route = removeRndRoute();
@@ -128,23 +128,45 @@ public class LatencyBench extends MapSetBenchmark {
         return latencies;
     }
 
+    private void warmup(int opCount) throws InterruptedException,
+                                            SerializationException {
+        switch (storageType) {
+            case ARP_TABLE:
+                log.info("Warming-up replicated ARP table with {} updates",
+                         opCount);
+                arpBench(opCount);
+                break;
+            case MAC_TABLE:
+                log.info("Warming-up replicated MAC table with {} updates",
+                         opCount);
+                macBench(opCount);
+                break;
+            case ROUTING_TABLE:
+                log.info("Warming-up replicated routing table with {} updates",
+                         opCount);
+                routeBench(opCount);
+                break;
+        }
+    }
+
     protected void run() {
         try {
             populateTable();
-
+            warmup(WARMUP_OP_COUNT);
             List<Long> latencies = null;
+
+            log.info("Executing latency benchmark with {} operations",
+                     writeCount);
 
             switch (storageType) {
                 case ARP_TABLE:
-                    latencies = arpBench();
+                    latencies = arpBench(writeCount);
                     break;
-
                 case MAC_TABLE:
-                    latencies = macBench();
+                    latencies = macBench(writeCount);
                     break;
-
                 case ROUTING_TABLE:
-                    latencies = routeBench();
+                    latencies = routeBench(writeCount);
                     break;
             }
             results.put("Avg. Latency in ms", Utils.mean(latencies));

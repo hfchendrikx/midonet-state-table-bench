@@ -53,6 +53,7 @@ public abstract class MapSetBenchmark {
     private static final Logger log =
         LoggerFactory.getLogger(LatencyBench.class);
 
+    protected static int WARMUP_OP_COUNT = 300;
     protected Map<String, Object> results;
 
     public enum StorageType {
@@ -245,7 +246,6 @@ public abstract class MapSetBenchmark {
     }
 
     private void prepareZkPaths(ZkDirectory zkDir, ZkConnection zkConn) {
-
         try {
             // Create the necessary paths
             String basePath = zkDir.getPath();
@@ -256,7 +256,6 @@ public abstract class MapSetBenchmark {
             for (String path : paths) {
                 if (!path.isEmpty()) {
                     absPath.append("/" + path);
-
                     if (zk.exists(absPath.toString(), false /* watch */) == null) {
                         zkConn.getZooKeeper()
                             .create(absPath.toString(), new byte[0],

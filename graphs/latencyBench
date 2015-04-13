@@ -2,7 +2,7 @@ width=65
 height=60
 set output "latencyBench.jpg"
 set terminal jpeg
-set key noreverse enhanced autotitles nobox
+set key noreverse enhanced autotitles nobox inside left
 unset ylabel
 set size width/100., height/100.
 set ylabel 'Latency (ms)' offset 2,0
