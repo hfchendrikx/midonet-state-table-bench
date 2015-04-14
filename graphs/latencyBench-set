@@ -1,0 +1,26 @@
+width=65
+height=60
+set output "latencyBench-set.jpg"
+set terminal jpeg
+set key noreverse enhanced autotitles nobox inside left
+unset ylabel
+set size width/100., height/100.
+set ylabel 'Latency (ms)' offset 2,0
+set xlabel 'Size'
+set xtics nomirror
+set ytics nomirror
+set yrange [0:600]
+set xrange [10:100000]
+set logscale x
+set lmargin 6.3
+#set xtics ("0" 0, "10K" 10000, "20K" 20000, "30K" 30000, "40K" 40000, "50K" 50000, "60K" 60000)
+set style line 1 lw 2 lc rgb "red" lt 11 pt 1
+set style line 2 lw 2 lc rgb "blue" lt 11 pt 2
+set style line 3 lw 2 lc rgb "#008A00" lt 11 pt 9 
+set style line 4 lw 2 lc rgb "orange" lt 11 pt 7
+set style line 5 lw 2 lc rgb "#D2691E" lt 11 pt 5
+set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
+
+unset label
+
+plot "routingtable-3nodes.txt" using 1:2:3 with yerrorbars title 'Route' ls 5

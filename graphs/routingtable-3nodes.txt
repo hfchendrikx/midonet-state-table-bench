@@ -1,0 +1,2 @@
+#mac table size, avg. latency, std. dev., 90% percentile
+100 48.4 23.6 78

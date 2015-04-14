@@ -1,6 +1,6 @@
 width=65
 height=60
-set output "latencyBench.jpg"
+set output "latencyBench-map.jpg"
 set terminal jpeg
 set key noreverse enhanced autotitles nobox inside left
 unset ylabel
@@ -9,12 +9,11 @@ set ylabel 'Latency (ms)' offset 2,0
 set xlabel 'Size'
 set xtics nomirror
 set ytics nomirror
-set yrange [0:150]
-set xrange [10:50000]
+set yrange [0:600]
+set xrange [10:100000]
 set logscale x
-set ytics 30 
 set lmargin 6.3
-
+#set xtics ("0" 0, "10K" 10000, "20K" 20000, "30K" 30000, "40K" 40000, "50K" 50000, "60K" 60000)
 set style line 1 lw 2 lc rgb "red" lt 11 pt 1
 set style line 2 lw 2 lc rgb "blue" lt 11 pt 2
 set style line 3 lw 2 lc rgb "#008A00" lt 11 pt 9 
@@ -24,5 +23,5 @@ set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
 
 unset label
 
-plot "arptable.txt" using 1:2:3 with yerrorbars title 'ARP' ls 3, "mactable.txt" title 'MAC' with linespoints ls 4
+plot "arptable-3nodes.txt" using 1:2:3 with yerrorbars title 'ARP' ls 3, "mactable-3nodes.txt" using 1:2:3 with yerrorbars title 'MAC' ls 4
 

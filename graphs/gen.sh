@@ -1,1 +1,1 @@
-gnuplot latencyBench
+gnuplot latencyBench-map latencyBench-set

@@ -90,7 +90,7 @@ public abstract class MapSetBenchmark {
         ZkDirectory zkDir =
             new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
                             null /* ACL */, new TryCatchReactor("Zookeeper", 1));
-        prepareZkPaths(zkDir, zkConn);
+        prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
 
         switch (storageType) {
             case MAC_TABLE:
@@ -245,11 +245,13 @@ public abstract class MapSetBenchmark {
         return Guice.createInjector(benchModule);
     }
 
-    private void prepareZkPaths(ZkDirectory zkDir, ZkConnection zkConn) {
+    private static void prepareZkPaths(ZkDirectory zkDir, ZkConnection zkConn,
+                                       String basePath,
+                                       StorageType storageType) {
         try {
             // Create the necessary paths
-            String basePath = zkDir.getPath();
-            String[] paths = basePath.split("/");
+            String benchPath = zkDir.getPath();
+            String[] paths = benchPath.split("/");
             StringBuffer absPath = new StringBuffer();
             ZooKeeper zk = zkConn.getZooKeeper();
 
@@ -270,6 +272,13 @@ public abstract class MapSetBenchmark {
                 zkDir.getChildren("", new Directory.DefaultTypedWatcher());
             for (String child: children) {
                 zkDir.delete("/" + child);
+            }
+
+            if (storageType == StorageType.ROUTING_TABLE) {
+                zkConn.getZooKeeper()
+                    .create(basePath + "/write_version", "-1".getBytes(),
+                            ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                            CreateMode.PERSISTENT);
             }
         } catch (Exception e) {
             log.error("Exception was caught when initializing the Zookeeper"
