@@ -1,9 +1,9 @@
-# Runs a benchmark ($1) for the given data structure (stored in $2) and for sizes comprised between
-# $3 and $4 in increments of $5.
-size=$3
+# Runs the latency benchmark for the given data structure (stored in $1) and for sizes comprised between
+# $2 and $3 in increments of $4.
+size=$2
 
-while [ $size -le "$4" ]
+while [ $size -le "$3" ]
 do
-  ./runMapSetBench.sh $1 $2 $size 200
-  size=$(($size+$5))
+  ./runLatencyBench.sh $1 $size 400
+  size=$(($size+$4))
 done
