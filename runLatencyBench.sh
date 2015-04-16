@@ -10,6 +10,9 @@ MPI_DESTDIR=${BASE_DIR}/openmpi/build/install
 export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MPI_LIBRARY_PATH}
 export OPAL_PREFIX="${OMPI_DIR}"
 
+#For Linux
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MPI_LIBRARY_PATH}
+
 #export OPAL_DESTDIR="${MPI_DESTDIR}"
 
 #$1 data structure type, $2 data structure size, $3 write count
