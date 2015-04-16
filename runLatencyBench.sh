@@ -1,5 +1,5 @@
 #!/bin/bash
-BASE_DIR=/Users/Nicolas/IdeaProjects/mido-bench
+BASE_DIR=`pwd`
 OMPI_DIR=${BASE_DIR}/openmpi/build/install/opt/openMPI
 MPI_LIBRARY_PATH=${OMPI_DIR}/lib
 BENCH_JAR=${BASE_DIR}/benchmarks/build/libs/benchmarks.jar
