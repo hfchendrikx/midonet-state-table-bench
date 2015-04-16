@@ -130,14 +130,11 @@ public class MPIBenchApp {
     protected final MpiModels.Mpi mpiProto;
     protected final MpiModels.MpiHost mpiHostProto;
 
-    private final MpiConfig cfg;
-
-    protected MPIBenchApp(int mpiSize, int mpiRank, MpiConfig cfg)
+    protected MPIBenchApp(int mpiSize, int mpiRank, String mpiHosts)
         throws MPIException, ConfigException {
         this.mpiSize = mpiSize;
         this.mpiRank = mpiRank;
         this.mpiRoot = 0;
-        this.cfg = cfg;
 
         String hostIp = DEFAULT_HOST_IP;
         String hostName = DEFAULT_HOST_NAME;
@@ -152,7 +149,7 @@ public class MPIBenchApp {
 
 
         Set<String> mpiNodes =
-            new HashSet<>(Arrays.asList(cfg.getMpiHosts().split(",")));
+            new HashSet<>(Arrays.asList(mpiHosts.split(",")));
         int mpiNodeCount = mpiNodes.size();
 
         mpiHostProto = MpiModels.MpiHost.newBuilder()
@@ -164,7 +161,7 @@ public class MPIBenchApp {
         mpiProto = MpiModels.Mpi.newBuilder()
                                 .setSize(mpiSize)
                                 .setNodeCount(mpiNodeCount)
-                                .setHostList(cfg.getMpiHosts())
+                                .setHostList(mpiHosts)
                                 .build();
     }
 

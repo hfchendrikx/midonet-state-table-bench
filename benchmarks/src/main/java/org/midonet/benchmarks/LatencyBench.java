@@ -4,7 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.zookeeper.KeeperException;
+import com.google.inject.Injector;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,8 @@ import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
+
+import mpi.MPI;
 
 /**
  * This class implements the LatencyBench described in the following document:
@@ -30,43 +33,15 @@ public class LatencyBench extends MapSetBenchmark {
 
     private static final Logger log =
         LoggerFactory.getLogger(LatencyBench.class);
-    int dataSize;
-    int writeCount;
+    private int dataSize;
+    private int writeCount;
 
-    public LatencyBench(String configPath, StorageType storageType, int size,
-                        int writeCount) throws InterruptedException,
-                                               KeeperException {
-        super(storageType, configPath, size);
+    public LatencyBench(Injector injector, String mpiHosts,
+                        StorageType storageType, int size, int writeCount)
+        throws Exception {
+        super(storageType, injector, mpiHosts, size);
         this.dataSize = size;
         this.writeCount = writeCount;
-    }
-
-    private IPv4Addr randomExistingIP() {
-        return arpTableKeys.get(rnd.nextInt(dataSize));
-    }
-
-    private MAC randomExistingMAC() {
-        return macTableKeys.get(rnd.nextInt(dataSize));
-    }
-
-    private Route removeRndRoute() {
-        int index = rnd.nextInt(routes.size());
-        return routes.remove(index);
-    }
-
-    private void populateTable() throws InterruptedException,
-                                        SerializationException {
-        switch (storageType) {
-            case ARP_TABLE:
-                populateArpTable();
-                break;
-            case MAC_TABLE:
-                populateMacTable();
-                break;
-            case ROUTING_TABLE:
-                populateRouteSet();
-                break;
-        }
     }
 
     private List<Long> arpBench(int opCount) throws InterruptedException {
@@ -79,7 +54,7 @@ public class LatencyBench extends MapSetBenchmark {
             long start = System.currentTimeMillis();
             IPv4Addr ip = randomExistingIP();
             arpTable.put(ip, randomArpEntry());
-            arpWatcher.waitForResult();
+            arpWatcher.waitForResult(0 /* wait until notified */);
             long end = System.currentTimeMillis();
             latencies.add(end-start);
         }
@@ -96,7 +71,7 @@ public class LatencyBench extends MapSetBenchmark {
             long start = System.currentTimeMillis();
             MAC mac = randomExistingMAC();
             macTable.put(mac, UUID.randomUUID());
-            macWatcher.waitForResult();
+            macWatcher.waitForResult(0 /* wait until notified */);
             long end = System.currentTimeMillis();
             latencies.add(end - start);
         }
@@ -121,7 +96,7 @@ public class LatencyBench extends MapSetBenchmark {
                 routeSet.add(route);
                 routes.add(route);
             }
-            routeWatcher.waitForResult();
+            routeWatcher.waitForResult(0 /* wait until notified */);
             long end = System.currentTimeMillis();
             latencies.add(end - start);
         }
@@ -169,11 +144,7 @@ public class LatencyBench extends MapSetBenchmark {
                     latencies = routeBench(writeCount);
                     break;
             }
-            results.put("Avg. Latency in ms", Utils.mean(latencies));
-            results.put("Std. deviation of latency in ms",
-                        Utils.standardDeviation(latencies));
-            results.put("90% percentile of latency in ms",
-                        Utils.percentile(latencies, 0.9f));
+            computeStats(latencies);
             printResults(log);
         } catch (Exception e) {
             log.error("Exception caught while running benchmark", e);
@@ -184,15 +155,18 @@ public class LatencyBench extends MapSetBenchmark {
         if (args.length == 4) {
             String configFile = args[0];
             StorageType type = StorageType.valueOf(args[1]);
-            int size = Integer.parseInt(args[2]);
+            int dataSize = Integer.parseInt(args[2]);
             int writeCount = Integer.parseInt(args[3]);
             log.info("Starting experiment with config file: {} state: {} "
-                     + "size: {} #writes: {}", configFile, type, size,
+                     + "size: {} #writes: {}", configFile, type, dataSize,
                      writeCount);
 
             try {
-                LatencyBench bench = new LatencyBench(configFile, type, size,
-                                                      writeCount);
+                MPI.Init(args);
+                Injector injector = MapSetBenchmark.createInjector(configFile);
+                String mpiHosts = getMpiHosts(configFile);
+                LatencyBench bench = new LatencyBench(injector, mpiHosts, type,
+                                                      dataSize, writeCount);
                 bench.run();
             } catch (Exception e) {
                 log.error("Exception {} was caught during the benchmark", e);

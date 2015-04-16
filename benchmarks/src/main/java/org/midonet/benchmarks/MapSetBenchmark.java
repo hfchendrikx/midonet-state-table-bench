@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -14,6 +15,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
 
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -21,9 +23,12 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.midonet.benchmarks.configuration.MpiConfig;
+import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.storage.MidonetBackendConfig;
 import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.conf.MidoNodeConfigurator;
+import org.midonet.config.ConfigProvider;
 import org.midonet.midolman.cluster.LegacyClusterModule;
 import org.midonet.midolman.cluster.serialization.SerializationModule;
 import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
@@ -45,10 +50,12 @@ import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
 import org.midonet.util.eventloop.TryCatchReactor;
 
+import mpi.MPI;
+
 /**
  * This is the super-class for various benchmarks on replicated maps/sets.
  */
-public abstract class MapSetBenchmark {
+public abstract class MapSetBenchmark extends MPIBenchApp {
 
     private static final Logger log =
         LoggerFactory.getLogger(LatencyBench.class);
@@ -73,16 +80,16 @@ public abstract class MapSetBenchmark {
     protected ArrayList<Route> routes;
     protected Random rnd;
 
-    public MapSetBenchmark(StorageType storageType, String configFile,
-                           int dataSize)
-        throws InterruptedException, KeeperException {
+    public MapSetBenchmark(StorageType storageType, Injector injector,
+                           String mpiHosts, int dataSize) throws Exception {
+
+        super(MPI.COMM_WORLD.getSize(), MPI.COMM_WORLD.getRank(),
+              mpiHosts);
 
         this.results = new HashMap<>();
         this.storageType = storageType;
         this.dataSize = dataSize;
         this.rnd = new Random();
-        ensureConfigFileExists(configFile);
-        Injector injector = createInjector(configFile);
         this.serializer = injector.getInstance(Serializer.class);
         ZkConnection zkConn = injector.getInstance(ZkConnection.class);
         MidonetBackendConfig config =
@@ -194,10 +201,10 @@ public abstract class MapSetBenchmark {
                 notify();
             }
         }
-        protected void waitForResult() throws InterruptedException {
+        protected void waitForResult(long timeout) throws InterruptedException {
             synchronized (this) {
                 while (!updateRcvd) {
-                    wait();
+                    wait(timeout);
                 }
                 updateRcvd = false;
             }
@@ -218,17 +225,24 @@ public abstract class MapSetBenchmark {
             }
         }
 
-        protected void waitForResult() throws InterruptedException {
+        protected void waitForResult(long timeout) throws InterruptedException {
             synchronized (this) {
                 while (!updateRcvd) {
-                    wait();
+                    wait(timeout);
                 }
                 updateRcvd = false;
             }
         }
     }
 
-    private static Injector createInjector(final String configFile) {
+    //TODO: Do this properly
+    protected static String getMpiHosts(String configFile) {
+        Config config =
+            MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+        return config.getString("mpi.mpi_hosts");
+    }
+
+    protected static Injector createInjector(final String configFile) {
         AbstractModule benchModule = new AbstractModule() {
             @Override
             protected void configure() {
@@ -293,6 +307,21 @@ public abstract class MapSetBenchmark {
         arpTableKeys = new HashMap<>(dataSize);
     }
 
+    protected void populateTable() throws InterruptedException,
+                                          SerializationException {
+        switch (storageType) {
+            case ARP_TABLE:
+                populateArpTable();
+                break;
+            case MAC_TABLE:
+                populateMacTable();
+                break;
+            case ROUTING_TABLE:
+                populateRouteSet();
+                break;
+        }
+    }
+
     protected void populateArpTable() throws InterruptedException {
         ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
             new ReplicatedMapWatcher<>();
@@ -304,8 +333,8 @@ public abstract class MapSetBenchmark {
             IPv4Addr ip = randomIP();
             arpTable.put(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
-            arpWatcher.waitForResult();
         }
+        arpWatcher.waitForResult(0 /* wait until notified */);
         arpTable.removeWatcher(arpWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
@@ -328,8 +357,8 @@ public abstract class MapSetBenchmark {
             MAC mac = MAC.random();
             macTable.put(mac, UUID.randomUUID());
             macTableKeys.put(i, mac);
-            macWatcher.waitForResult();
         }
+        macWatcher.waitForResult(0 /* wait until notified */);
         macTable.removeWatcher(macWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
@@ -359,11 +388,24 @@ public abstract class MapSetBenchmark {
             Route route = randomRoute();
             routes.add(route);
             routeSet.add(route);
-            routeWatcher.waitForResult();
         }
+        routeWatcher.waitForResult(0 /* wait until notified */);
         routeSet.removeWatcher(routeWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
+    }
+
+    protected IPv4Addr randomExistingIP() {
+        return arpTableKeys.get(rnd.nextInt(dataSize));
+    }
+
+    protected MAC randomExistingMAC() {
+        return macTableKeys.get(rnd.nextInt(dataSize));
+    }
+
+    protected Route removeRndRoute() {
+        int index = rnd.nextInt(routes.size());
+        return routes.remove(index);
     }
 
     /**
@@ -378,6 +420,15 @@ public abstract class MapSetBenchmark {
         if (!config.exists())
             throw new IllegalArgumentException("Configuration file: " +
                                                configFile + " does not exist");
+    }
+
+
+    protected void computeStats(List<Long> latencies) {
+        results.put("Avg. Latency in ms", StatUtils.mean(latencies));
+        results.put("Std. deviation of latency in ms",
+                    StatUtils.standardDeviation(latencies));
+        results.put("90% percentile of latency in ms",
+                    StatUtils.percentile(latencies, 0.9f));
     }
 
     protected void printResults(Logger log) {

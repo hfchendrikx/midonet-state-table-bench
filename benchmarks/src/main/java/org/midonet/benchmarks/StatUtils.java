@@ -9,7 +9,7 @@ import java.util.List;
  * this class can be used to compute the mean, standard deviation, and
  * x-percentile of a list of values.
  */
-public class Utils {
+public class StatUtils {
 
     private static DecimalFormat oneDecForm = new DecimalFormat("#.#");
 
