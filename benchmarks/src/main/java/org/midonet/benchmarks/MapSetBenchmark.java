@@ -270,6 +270,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             StringBuffer absPath = new StringBuffer();
             ZooKeeper zk = zkConn.getZooKeeper();
 
+            log.info("Creating ZK base path {}", benchPath);
             for (String path : paths) {
                 if (!path.isEmpty()) {
                     absPath.append("/" + path);
@@ -294,6 +295,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             log.error("Impossible to obtain map/set entries", e);
         }
 
+        log.info("Deleting left-over children, count {}", children.size());
         // Delete any left-over children
         for (String child: children) {
             // Children are ephemeral nodes so it can happen that some
