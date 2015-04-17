@@ -16,7 +16,6 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
 
-import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -24,12 +23,10 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.midonet.benchmarks.configuration.MpiConfig;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.storage.MidonetBackendConfig;
 import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.conf.MidoNodeConfigurator;
-import org.midonet.config.ConfigProvider;
 import org.midonet.midolman.cluster.LegacyClusterModule;
 import org.midonet.midolman.cluster.serialization.SerializationModule;
 import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
@@ -338,6 +335,18 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         }
     }
 
+    private void waitForCompleteArpTable(
+        ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher)
+        throws InterruptedException {
+        int size;
+        do {
+            arpWatcher.waitForResult(0 /* wait until notified */);
+            size = arpTable.getMap().size();
+        // We don't necessarily receive all updates so wait only until 90%
+        // of the expected size is reached.
+        } while (size < (0.9 * dataSize));
+    }
+
     protected void populateArpTable() throws InterruptedException {
         ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
             new ReplicatedMapWatcher<>();
@@ -350,7 +359,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             arpTable.put(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
         }
-        arpWatcher.waitForResult(0 /* wait until notified */);
+        waitForCompleteArpTable(arpWatcher);
         arpTable.removeWatcher(arpWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
@@ -360,6 +369,17 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         macTable = new MacPortMap(zkDir, true /* ephemeral */);
         macTable.start();
         macTableKeys = new HashMap<>(dataSize);
+    }
+
+    private void waitForCompleteMacTable(
+        ReplicatedMapWatcher<MAC, UUID> macWatcher) throws InterruptedException {
+        int size;
+        do {
+            macWatcher.waitForResult(0 /* wait until notified */);
+            size = macTable.getMap().size();
+        // We don't necessarily receive all updates so wait only until 90%
+        // of the expected size is reached.
+        } while (size < (0.9 * dataSize));
     }
 
     protected void populateMacTable() throws InterruptedException {
@@ -374,7 +394,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             macTable.put(mac, UUID.randomUUID());
             macTableKeys.put(i, mac);
         }
-        macWatcher.waitForResult(0 /* wait until notified */);
+        waitForCompleteMacTable(macWatcher);
         macTable.removeWatcher(macWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
@@ -392,6 +412,17 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         routes = new ArrayList<>(dataSize);
     }
 
+    private void waitForCompleteRouteSet(ReplicatedSetWatcher routeWatcher)
+        throws InterruptedException {
+        int size;
+        do {
+            routeWatcher.waitForResult(0 /* wait until notified */);
+            size = routeSet.getStrings().size();
+        // We don't necessarily receive all updates so wait only until 90%
+        // of the expected size is reached.
+        } while (size < (0.9 * dataSize));
+    }
+
     protected void populateRouteSet()
         throws InterruptedException, SerializationException {
 
@@ -405,7 +436,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             routes.add(route);
             routeSet.add(route);
         }
-        routeWatcher.waitForResult(0 /* wait until notified */);
+        waitForCompleteRouteSet(routeWatcher);
         routeSet.removeWatcher(routeWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
