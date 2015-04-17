@@ -2,6 +2,7 @@ package org.midonet.benchmarks;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.inject.Injector;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
+import org.midonet.midolman.state.ReplicatedSet;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
 
@@ -44,7 +46,7 @@ public class ChurnBench extends MapSetBenchmark {
                                                  new UUID(0, 0));
 
     /**
-     * The maxium time during which a client waits for an update. Passed this time,
+     * The maximum time during which a client waits for an update. Passed this time,
      * the client will consider the benchmark over.
      */
     private static long CLIENT_TIMEOUT = 5000;
@@ -73,16 +75,16 @@ public class ChurnBench extends MapSetBenchmark {
         // The process with rank 0 is the updater
         if (mpiRank == 0) {
             int sleepTime = 1000 / writeRate;
-            for (int i = 0; i < opCount; i++) {
+            for (int version = 0; version < opCount; version++) {
                 if (!warmup)
-                    versionTimestamps[i] = System.currentTimeMillis();
+                    versionTimestamps[version] = System.currentTimeMillis();
 
                 // We encode the table version in the expiry field
                 // of the arp entry.
                 ArpCacheEntry arpEntry =
-                    new ArpCacheEntry(MAC.random(), i /*expiry*/,
+                    new ArpCacheEntry(MAC.random(), version /*expiry*/,
                                       0 /*stale*/, 0 /*lastArp*/);
-                arpTable.put(randomExistingIP(), arpEntry);
+                arpTable.put(DUMMY_IP, arpEntry);
                 Thread.sleep(sleepTime);
             }
 
@@ -112,12 +114,102 @@ public class ChurnBench extends MapSetBenchmark {
         }
     }
 
-    private void macBench(int opCount, boolean warmup) {
-        //TODO
+    private void macBench(int opCount, boolean warmup) throws InterruptedException {
+        // The process with rank 0 is the updater
+        if (mpiRank == 0) {
+            int sleepTime = 1000 / writeRate;
+            for (int version = 0; version < opCount; version++) {
+                if (!warmup)
+                    versionTimestamps[version] = System.currentTimeMillis();
+
+                // We encode the table version in least significant
+                // bits of the UUID.
+                macTable.put(DUMMY_MAC, new UUID(0, version));
+                Thread.sleep(sleepTime);
+            }
+
+        // Otherwise, the process is a client
+        } else {
+            ReplicatedMapWatcher<MAC, UUID> macWatcher =
+                new ReplicatedMapWatcher<>();
+            macTable.addWatcher(macWatcher);
+
+            int lastVersion = -1;
+            boolean done = false;
+
+            do {
+                macWatcher.waitForResult(CLIENT_TIMEOUT);
+                UUID uuid = macTable.get(DUMMY_MAC);
+                int version = (int) uuid.getLeastSignificantBits();
+
+                // If we get the same version, then we timed-out on the watcher
+                // and thus the benchmark is over.
+                if (version == lastVersion) {
+                    done = true;
+                } else {
+                    if (!warmup)
+                        versionTimestamps[version] = System.currentTimeMillis();
+                }
+            } while (done);
+        }
     }
 
-    private void routeBench(int opCount, boolean warmup) {
-        //TODO
+    private void routeBench(int opCount, boolean warmup) throws Exception {
+        // The process with rank 0 is the updater
+        if (mpiRank == 0) {
+            int sleepTime = 1000 / writeRate;
+            for (int version = 0; version < opCount; version++) {
+                if (!warmup)
+                    versionTimestamps[version] = System.currentTimeMillis();
+
+                if (!warmup) {
+                    // We encode the set version in the size of the route set.
+                    // More specifically, the version is the set size minus
+                    // the already populated routes.
+                    routeSet.add(randomRoute());
+
+                    Thread.sleep(sleepTime);
+                } else {
+                    // If we are doing the warmup, alternate between
+                    // adding a route and removing one to keep the route set
+                    // size identical. If opCount is odd, we omit the last
+                    // addition.
+                    if ((version < (opCount - 1)) || (opCount % 2 == 0)) {
+                        if (rnd.nextInt(1) == 0) {
+                            routeSet.add(randomRoute());
+                        } else {
+                            Route route = removeRndRoute();
+                            routeSet.remove(route);
+                        }
+                    }
+                }
+            }
+
+        // Otherwise, the process is a client
+        } else {
+            ReplicatedSetWatcher<Route> routeWatcher =
+                new ReplicatedSetWatcher<>();
+            routeSet.addWatcher(routeWatcher);
+
+            int lastVersion = -1;
+            boolean done = false;
+
+            do {
+                routeWatcher.waitForResult(CLIENT_TIMEOUT);
+                Set<String> routes = routeSet.getStrings();
+
+                // versions start out at zero hence the "-1"
+                int version = routes.size() - dataSize - 1;
+                // If we get the same version, then we timed-out on the watcher
+                // and thus the benchmark is over.
+                if (version == lastVersion) {
+                    done = true;
+                } else {
+                    if (!warmup)
+                        versionTimestamps[version] = System.currentTimeMillis();
+                }
+            } while (done);
+        }
     }
 
     private void collectResults() throws MPIException {
@@ -153,8 +245,7 @@ public class ChurnBench extends MapSetBenchmark {
         printResults(log);
     }
 
-    private void warmup(int opCount) throws InterruptedException,
-                                            SerializationException {
+    private void warmup(int opCount) throws Exception {
         switch (storageType) {
             case ARP_TABLE:
                 log.info("Warming-up replicated ARP table with {} updates",
