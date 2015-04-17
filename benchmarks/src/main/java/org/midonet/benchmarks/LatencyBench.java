@@ -152,17 +152,22 @@ public class LatencyBench extends MapSetBenchmark {
     }
 
     public static void main(String[] args) {
-        if (args.length == 4) {
-            String configFile = args[0];
-            StorageType type = StorageType.valueOf(args[1]);
-            int dataSize = Integer.parseInt(args[2]);
-            int writeCount = Integer.parseInt(args[3]);
+        if (args.length == 0) {
+            try {
+                MPI.Init(args);
+            } catch (Exception e) {
+                log.error("Impossible to initialize MPI", e);
+            }
+
+            String configFile = "benchmarks/conf/midobench.conf"; //args[0];
+            StorageType type = StorageType.ARP_TABLE; //StorageType.valueOf(args[1]);
+            int dataSize = 100; //Integer.parseInt(args[2]);
+            int writeCount = 100; //Integer.parseInt(args[3]);
             log.info("Starting experiment with config file: {} state: {} "
                      + "size: {} #writes: {}", configFile, type, dataSize,
                      writeCount);
 
             try {
-                MPI.Init(args);
                 Injector injector = MapSetBenchmark.createInjector(configFile);
                 String mpiHosts = getMpiHosts(configFile);
                 LatencyBench bench = new LatencyBench(injector, mpiHosts, type,

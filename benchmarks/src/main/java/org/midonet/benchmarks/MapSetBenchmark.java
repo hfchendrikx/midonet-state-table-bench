@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -280,14 +281,27 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                     }
                 }
             }
+        } catch (Exception e) {
+            log.error("Exception was caught when creating the Zookeeper"
+                      + " base path", e);
+        }
 
-            // Delete any left-over children
-            Set<String> children =
+        Set<String> children = new HashSet<>();
+        try {
+            children =
                 zkDir.getChildren("", new Directory.DefaultTypedWatcher());
-            for (String child: children) {
-                zkDir.delete("/" + child);
-            }
+        } catch (Exception e) {
+            log.error("Impossible to obtain map/set entries", e);
+        }
 
+        // Delete any left-over children
+        for (String child: children) {
+            // Children are ephemeral nodes so it can happen that some
+            // get deleted in the meantime. We just ignore such cases.
+            try { zkDir.delete("/" + child); } catch (Exception e) {}
+        }
+
+        try {
             if (storageType == StorageType.ROUTING_TABLE) {
                 zkConn.getZooKeeper()
                     .create(basePath + "/write_version", "-1".getBytes(),
@@ -295,8 +309,8 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                             CreateMode.PERSISTENT);
             }
         } catch (Exception e) {
-            log.error("Exception was caught when initializing the Zookeeper"
-                      + " directory", e);
+            log.error("Impossible to create the version directory "
+                      + "needed for routes", e);
         }
         log.info("***ZK maps/sets path: {}", zkDir.getPath());
     }
