@@ -151,7 +151,6 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
 
             @Override
             public void onSuccess(java.lang.Void data) {
-                log.debug("ReplicatedSet delete {} succeeded", item);
             }
 
             @Override
@@ -479,9 +478,10 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     }
 
     protected void printResults(Logger log) {
-        log.info("*** Benchmark is over, results:");
+        System.out.println("*** Results for: " + storageType + " of size: " +
+                           dataSize + ":");
         for (String key: results.keySet())
-            log.info("\t {}: {}", key, results.get(key));
+            System.out.println("\t" + key + " " + results.get(key));
     }
 
     private IPv4Addr randomIP() {
