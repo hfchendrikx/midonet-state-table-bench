@@ -58,6 +58,10 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     private static final Logger log =
         LoggerFactory.getLogger(LatencyBench.class);
 
+    // When populating a table, we wait until dataSize * FILL_RATIO
+    // entries have been inserted in the table before proceeding to the
+    // warmup phase.
+    private static final float FILL_RATIO = 0.7f;
     protected static int WARMUP_OP_COUNT = 300;
     protected Map<String, Object> results;
 
@@ -343,7 +347,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             size = arpTable.getMap().size();
         // We don't necessarily receive all updates so wait only until 90%
         // of the expected size is reached.
-        } while (size < (0.9 * dataSize));
+        } while (size < (FILL_RATIO * dataSize));
     }
 
     protected void populateArpTable() throws InterruptedException {
@@ -378,7 +382,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             size = macTable.getMap().size();
         // We don't necessarily receive all updates so wait only until 90%
         // of the expected size is reached.
-        } while (size < (0.9 * dataSize));
+        } while (size < (FILL_RATIO * dataSize));
     }
 
     protected void populateMacTable() throws InterruptedException {
@@ -419,7 +423,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             size = routeSet.getStrings().size();
         // We don't necessarily receive all updates so wait only until 90%
         // of the expected size is reached.
-        } while (size < (0.9 * dataSize));
+        } while (size < (FILL_RATIO * dataSize));
     }
 
     protected void populateRouteSet()
