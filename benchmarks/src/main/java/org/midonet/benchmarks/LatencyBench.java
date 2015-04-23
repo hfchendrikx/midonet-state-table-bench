@@ -167,6 +167,7 @@ public class LatencyBench extends MapSetBenchmark {
                      + "size: {} #writes: {}", configFile, type, dataSize,
                      writeCount);
 
+            System.out.println("System properties: " + System.getProperties().toString());
             try {
                 Injector injector = MapSetBenchmark.createInjector(configFile);
                 String mpiHosts = getMpiHosts(configFile);

@@ -7,7 +7,10 @@ MPI_JAR=$OMPI_DIR/lib/mpi.jar
 
 #For OS-X
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$MPI_LIBRARY_PATH
-export OPAL_PREFIX=$OMPI_DIR
+
+# This export should be placed in openmpi/build/mpirun_wrapper.sh. The one below should be
+# commented out.
+#export OPAL_DESTDIR=/home/ubuntu/bench/midokura-benchmarks/openmpi/build/install/opt/openMPI
 
 #$1 data structure type, $2 structure type, $3 write count, $4 write rate
 java -Djava.library.path=$MPI_LIBRARY_PATH -cp $BENCH_JAR:$MPI_JAR org.midonet.benchmarks.ChurnBench benchmarks/conf/midobench.conf $1 $2 $3 $4

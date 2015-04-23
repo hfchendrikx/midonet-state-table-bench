@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright 2014 Midokura SARL
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<configuration>
+    <jmxConfigurator/>
+
+    <appender name="LOG-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${midolman.log.dir}midolman.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy.MM.dd HH:mm:ss.SSS} %-5level [%thread] %logger{0} - %X{cookie} %m%n%rEx</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${midolman.log.dir}midolman.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="TRACE-FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${midolman.log.dir}mm-trace.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy.MM.dd HH:mm:ss.SSS} %-5level %X{cookie} %m%n%rEx</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="EVENT-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${midolman.log.dir}midolman.event.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy.MM.dd HH:mm:ss.SSS} ${HOSTNAME} %-5level %logger - %m%n%rEx </pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${midolman.log.dir}midolman.event.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+    </appender>
+
+    <!-- These are static for internal use, do not touch -->
+    <logger name="org.midonet.packets.debug.packet-processor" level="DEBUG" >
+        <appender-ref ref="TRACE-FILE" />
+    </logger>
+    <logger name="org.midonet.packets.trace.packet-processor" level="TRACE" >
+        <appender-ref ref="TRACE-FILE" />
+    </logger>
+
+    <!-- logs under "org.midonet.event" logger also goes to EVENT-FILE appender as well as those defined in <root> -->
+    <logger name="org.midonet.event" level="INFO" additivity="false">
+         <appender-ref ref="EVENT-FILE"/>
+    </logger>
+
+    <!-- BEWARE: DEBUG level is meant for developement and/or troubleshooting
+                 it greatly impacts system performance.
+         levels: OFF, ERROR, WARN, INFO, DEBUG, TRACE -->
+    <root level="OFF">
+        <appender-ref ref="LOG-FILE" />
+    </root>
+
+</configuration>
