@@ -162,12 +162,11 @@ public class LatencyBench extends MapSetBenchmark {
             StorageType type = StorageType.valueOf(args[0]);
             int dataSize = Integer.parseInt(args[1]);
             int writeCount = Integer.parseInt(args[2]);
-            String configFile = System.getProperty("midobench.conf");
+            String configFile = System.getProperty("midobench.config");
             log.info("Starting experiment with config file: {} state: {} "
                      + "size: {} #writes: {}", configFile, type, dataSize,
                      writeCount);
 
-            System.out.println("System properties: " + System.getProperties().toString());
             try {
                 Injector injector = MapSetBenchmark.createInjector(configFile);
                 String mpiHosts = getMpiHosts(configFile);

@@ -13,5 +13,5 @@ export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$MPI_LIBRARY_PATH
 #export OPAL_DESTDIR=/home/ubuntu/bench/midokura-benchmarks/openmpi/build/install/opt/openMPI
 
 #$1 data structure type, $2 structure type, $3 write count, $4 write rate
-java -Dmidobench.config=$CONFIG_FILE -Djava.library.path=$MPI_LIBRARY_PATH -cp $BENCH_JAR:$MPI_JAR org.midonet.benchmarks.ChurnBench benchmarks/conf/midobench.conf $1 $2 $3 $4
+java -Dmidobench.config=$CONFIG_FILE -Djava.library.path=$MPI_LIBRARY_PATH -cp $BENCH_JAR:$MPI_JAR org.midonet.benchmarks.ChurnBench $1 $2 $3 $4
 exit 0

@@ -17,5 +17,5 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MPI_LIBRARY_PATH}
 #export OPAL_DESTDIR="${MPI_DESTDIR}"
 
 #$1 data structure type, $2 data structure size, $3 write count
-java -Dmidobench.conf=$CONFIG_FILE -Djute.maxbuffer=50M -Djava.library.path=${MPI_LIBRARY_PATH} -cp .:${BENCH_JAR}:${MPI_JAR} org.midonet.benchmarks.LatencyBench benchmarks/conf/midobench.conf $1 $2 $3
+java -Dmidobench.config=$CONFIG_FILE -Djute.maxbuffer=50M -Djava.library.path=${MPI_LIBRARY_PATH} -cp .:${BENCH_JAR}:${MPI_JAR} org.midonet.benchmarks.LatencyBench $1 $2 $3
 exit 0
