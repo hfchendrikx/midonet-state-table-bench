@@ -108,10 +108,10 @@ public class ChurnBench extends MapSetBenchmark {
                 if (version == lastVersion) {
                     done = true;
                 } else {
-                    if (!warmup)
-                        versionTimestamps[version] = System.currentTimeMillis();
+                    versionTimestamps[version] = System.currentTimeMillis();
+                    lastVersion = version;
                 }
-            } while (done);
+            } while (!done);
         }
     }
 
@@ -149,10 +149,10 @@ public class ChurnBench extends MapSetBenchmark {
                 if (version == lastVersion) {
                     done = true;
                 } else {
-                    if (!warmup)
-                        versionTimestamps[version] = System.currentTimeMillis();
+                    versionTimestamps[version] = System.currentTimeMillis();
+                    lastVersion = version;
                 }
-            } while (done);
+            } while (!done);
         }
     }
 
@@ -208,10 +208,10 @@ public class ChurnBench extends MapSetBenchmark {
                 if (version == lastVersion) {
                     done = true;
                 } else {
-                    if (!warmup)
-                        versionTimestamps[version] = System.currentTimeMillis();
+                    versionTimestamps[version] = System.currentTimeMillis();
+                    lastVersion = version;
                 }
-            } while (done);
+            } while (!done);
         }
     }
 
