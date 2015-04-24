@@ -14,6 +14,10 @@ import java.util.UUID;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.PrivateModule;
+import com.google.inject.Provider;
+import com.google.inject.name.Names;
 import com.typesafe.config.Config;
 
 import org.apache.zookeeper.CreateMode;
@@ -29,7 +33,8 @@ import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.conf.MidoNodeConfigurator;
 import org.midonet.midolman.cluster.LegacyClusterModule;
 import org.midonet.midolman.cluster.serialization.SerializationModule;
-import org.midonet.midolman.cluster.zookeeper.ZookeeperConnectionModule;
+import org.midonet.midolman.cluster.zookeeper.DirectoryProvider;
+import org.midonet.midolman.cluster.zookeeper.ZkConnectionProvider;
 import org.midonet.midolman.guice.config.MidolmanConfigModule;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
@@ -42,10 +47,12 @@ import org.midonet.midolman.state.MacPortMap;
 import org.midonet.midolman.state.ReplicatedMap;
 import org.midonet.midolman.state.ReplicatedSet;
 import org.midonet.midolman.state.ZkConnection;
+import org.midonet.midolman.state.ZkConnectionAwareWatcher;
 import org.midonet.midolman.state.ZkDirectory;
 import org.midonet.midolman.state.ZookeeperConnectionWatcher;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
+import org.midonet.util.eventloop.Reactor;
 import org.midonet.util.eventloop.TryCatchReactor;
 
 import mpi.MPI;
@@ -243,6 +250,13 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         return config.getString("mpi.mpi_hosts");
     }
 
+    //TODO: Do this properly
+    protected static int getThreadsPerHost(String configFile) {
+        Config config =
+            MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+        return config.getInt("benchmarks.threads_per_host");
+    }
+
     protected static Injector createInjector(final String configFile) {
         AbstractModule benchModule = new AbstractModule() {
             @Override
@@ -251,7 +265,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                     MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
                 install(new MidolmanConfigModule(config));
                 install(new MidonetBackendModule(config));
-                install(new ZookeeperConnectionModule(
+                install(new ZookeeperConnectionModule(getThreadsPerHost(configFile),
                     ZookeeperConnectionWatcher.class));
                 install(new LegacyClusterModule());
                 install(new SerializationModule());
@@ -506,6 +520,56 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                          24 /* destNetLength */, Route.NextHop.PORT,
                          UUID.randomUUID() /* port */, nextHopGtw, 1 /* weight */,
                          "" /* attribue */, UUID.randomUUID() /* routerId */);
+    }
+
+    public static class ZookeeperConnectionModule extends PrivateModule {
+        private final Class<? extends ZkConnectionAwareWatcher> connWatcherImpl;
+
+        private final int nOfThreads;
+
+        public ZookeeperConnectionModule(int nOfThreads,
+                                         Class<? extends ZkConnectionAwareWatcher> connWatcherImpl) {
+            this.nOfThreads = nOfThreads;
+            this.connWatcherImpl = connWatcherImpl;
+        }
+
+        protected void configure() {
+            this.binder().requireExplicitBindings();
+            this.requireBinding(MidonetBackendConfig.class);
+            this.bindZookeeperConnection();
+            this.bindDirectory();
+            this.bindReactor();
+            this.expose(Key.get(Reactor.class, Names.named("directoryReactor")));
+            this.expose(Directory.class);
+            this.bindZkConnectionWatcher();
+        }
+
+        protected void bindZkConnectionWatcher() {
+            this.bind(ZkConnectionAwareWatcher.class).to(this.connWatcherImpl).asEagerSingleton();
+            this.expose(ZkConnectionAwareWatcher.class);
+        }
+
+        protected void bindDirectory() {
+            this.bind(Directory.class).toProvider(DirectoryProvider.class).asEagerSingleton();
+        }
+
+        protected void bindZookeeperConnection() {
+            this.bind(ZkConnection.class).toProvider(ZkConnectionProvider.class).asEagerSingleton();
+            this.expose(ZkConnection.class);
+        }
+
+        protected void bindReactor() {
+            this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor")).toProvider(ZookeeperConnectionModule.ZookeeperReactorProvider.class).asEagerSingleton();
+        }
+
+        public class ZookeeperReactorProvider implements Provider<Reactor> {
+            public ZookeeperReactorProvider() {
+            }
+
+            public Reactor get() {
+                return new TryCatchReactor("zookeeper", Integer.valueOf(nOfThreads));
+            }
+        }
     }
 
     /**

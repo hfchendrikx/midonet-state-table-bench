@@ -274,9 +274,11 @@ public class ChurnBench extends MapSetBenchmark {
             if (isMpiRoot()) {
                 Thread.sleep(2 * CLIENT_TIMEOUT);
             }
+            log.info("MPI rank: {}, waiting on barrier, mpi rank", mpiRank);
             // All processes (the updater and the clients) synchronize with this
             // barrier to start the benchmark approximately at the same time.
             barrier();
+            log.info("MPI rank: {}, executing benchmark", mpiRank);
 
             switch (storageType) {
                 case ARP_TABLE:
