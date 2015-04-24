@@ -522,6 +522,16 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                          "" /* attribue */, UUID.randomUUID() /* routerId */);
     }
 
+    public static class ZookeeperReactorProvider implements Provider<Reactor> {
+        private int nOfThreads;
+        public ZookeeperReactorProvider(int nOfThreads) {
+            this.nOfThreads = nOfThreads;
+        }
+        public Reactor get() {
+            return new TryCatchReactor("zookeeper", Integer.valueOf(nOfThreads));
+        }
+    }
+
     public static class ZookeeperConnectionModule extends PrivateModule {
         private final Class<? extends ZkConnectionAwareWatcher> connWatcherImpl;
 
@@ -560,20 +570,8 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
 
         protected void bindReactor() {
             this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor"))
-                .toProvider(
-                    new ZookeeperConnectionModule.ZookeeperReactorProvider(nOfThreads))
+                .toProvider(new ZookeeperReactorProvider(nOfThreads))
                     .asEagerSingleton();
-        }
-
-        public class ZookeeperReactorProvider implements Provider<Reactor> {
-            private int nOfThreads;
-            public ZookeeperReactorProvider(int nOfThreads) {
-                this.nOfThreads = nOfThreads;
-            }
-
-            public Reactor get() {
-                return new TryCatchReactor("zookeeper", Integer.valueOf(nOfThreads));
-            }
         }
     }
 
