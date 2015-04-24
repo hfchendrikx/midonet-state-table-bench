@@ -298,12 +298,12 @@ public class ChurnBench extends MapSetBenchmark {
     }
 
     public static void main(String[] args) {
-        if (args.length == 5) {
-            String configFile = args[0];
-            StorageType storageType = StorageType.valueOf(args[1]);
-            int size = Integer.parseInt(args[2]);
-            int writeCount = Integer.parseInt(args[3]);
-            int writeRate = Integer.parseInt(args[4]);
+        if (args.length == 4) {
+            String configFile = System.getProperty("midobench.config");
+            StorageType storageType = StorageType.valueOf(args[0]);
+            int size = Integer.parseInt(args[1]);
+            int writeCount = Integer.parseInt(args[2]);
+            int writeRate = Integer.parseInt(args[3]);
 
             try {
                 MPI.Init(args);
@@ -317,7 +317,7 @@ public class ChurnBench extends MapSetBenchmark {
                 log.warn("Unable to initialize churn benchmark", e);
             }
         } else {
-            log.error("Please specify the config. file, the data structure "
+            log.error("Please specify the data structure "
                       + "type (MAC_TABLE, ARP_TABLE, or ROUTING_TABLE), the "
                       + "size of the data structure, the number of writes "
                       + "to perform, and the update rate");

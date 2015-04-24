@@ -152,17 +152,17 @@ public class LatencyBench extends MapSetBenchmark {
     }
 
     public static void main(String[] args) {
-        if (args.length == 4) {
+        if (args.length == 3) {
             try {
                 MPI.Init(args);
             } catch (Exception e) {
                 log.error("Impossible to initialize MPI", e);
             }
 
-            String configFile = args[0];
-            StorageType type = StorageType.valueOf(args[1]);
-            int dataSize = Integer.parseInt(args[2]);
-            int writeCount = Integer.parseInt(args[3]);
+            StorageType type = StorageType.valueOf(args[0]);
+            int dataSize = Integer.parseInt(args[1]);
+            int writeCount = Integer.parseInt(args[2]);
+            String configFile = System.getProperty("midobench.conf");
             log.info("Starting experiment with config file: {} state: {} "
                      + "size: {} #writes: {}", configFile, type, dataSize,
                      writeCount);
@@ -179,7 +179,7 @@ public class LatencyBench extends MapSetBenchmark {
             }
 
         } else {
-            log.error("Please specify the config. file, the data structure "
+            log.error("Please specify the data structure "
                       + "type (MAC_TABLE, ARP_TABLE, or ROUTING_TABLE), the "
                       + "size of the data structure, and the number of writes "
                       + "to issue");

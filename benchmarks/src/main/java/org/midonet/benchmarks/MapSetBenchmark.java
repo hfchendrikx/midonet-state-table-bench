@@ -265,7 +265,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
                     MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
                 install(new MidolmanConfigModule(config));
                 install(new MidonetBackendModule(config));
-                install(new ZookeeperConnectionModule(getThreadsPerHost(configFile),
+                install(new ZookeeperConnectionModule(
                     ZookeeperConnectionWatcher.class));
                 install(new LegacyClusterModule());
                 install(new SerializationModule());
@@ -523,9 +523,9 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     }
 
     public static class ZookeeperReactorProvider implements Provider<Reactor> {
-        private int nOfThreads;
-        public ZookeeperReactorProvider(int nOfThreads) {
-            this.nOfThreads = nOfThreads;
+        private final static int nOfThreads =
+            getThreadsPerHost(System.getProperty("midobench.config"));
+        public ZookeeperReactorProvider() {
         }
         public Reactor get() {
             return new TryCatchReactor("zookeeper", Integer.valueOf(nOfThreads));
@@ -535,11 +535,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     public static class ZookeeperConnectionModule extends PrivateModule {
         private final Class<? extends ZkConnectionAwareWatcher> connWatcherImpl;
 
-        private final int nOfThreads;
-
-        public ZookeeperConnectionModule(int nOfThreads,
-                                         Class<? extends ZkConnectionAwareWatcher> connWatcherImpl) {
-            this.nOfThreads = nOfThreads;
+        public ZookeeperConnectionModule(Class<? extends ZkConnectionAwareWatcher> connWatcherImpl) {
             this.connWatcherImpl = connWatcherImpl;
         }
 
@@ -570,8 +566,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
 
         protected void bindReactor() {
             this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor"))
-                .toProvider(new ZookeeperReactorProvider(nOfThreads))
-                    .asEagerSingleton();
+                .toProvider(ZookeeperReactorProvider.class).asEagerSingleton();
         }
     }
 
