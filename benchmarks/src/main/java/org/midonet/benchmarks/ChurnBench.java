@@ -88,8 +88,9 @@ public class ChurnBench extends MapSetBenchmark {
                 Thread.sleep(sleepTime);
             }
 
-        // Otherwise, the process is a client
-        } else {
+        // Otherwise, the process is a client. Only execute this block
+        // for the actual benchmark, not the warmup phase.
+        } else if (!warmup) {
             ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
                 new ReplicatedMapWatcher<>();
             arpTable.addWatcher(arpWatcher);
@@ -128,8 +129,9 @@ public class ChurnBench extends MapSetBenchmark {
                 Thread.sleep(sleepTime);
             }
 
-        // Otherwise, the process is a client
-        } else {
+        // Otherwise, the process is a client. Only execute this block
+        // for the actual benchmark, not the warmup phase.
+        } else if (!warmup) {
             ReplicatedMapWatcher<MAC, UUID> macWatcher =
                 new ReplicatedMapWatcher<>();
             macTable.addWatcher(macWatcher);
@@ -185,8 +187,9 @@ public class ChurnBench extends MapSetBenchmark {
                 }
             }
 
-        // Otherwise, the process is a client
-        } else {
+        // Otherwise, the process is a client. Only execute this block
+        // for the actual benchmark, not the warmup phase.
+        } else if (!warmup) {
             ReplicatedSetWatcher<Route> routeWatcher =
                 new ReplicatedSetWatcher<>();
             routeSet.addWatcher(routeWatcher);
