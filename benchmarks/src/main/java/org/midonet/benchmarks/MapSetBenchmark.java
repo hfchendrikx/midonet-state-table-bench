@@ -213,6 +213,10 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             synchronized (this) {
                 while (!updateRcvd) {
                     wait(timeout);
+
+                    if (timeout > 0) {
+                        break;
+                    }
                 }
                 updateRcvd = false;
             }
@@ -488,6 +492,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
 
 
     protected void computeStats(List<Long> latencies) {
+        results.put("Number of latencies: ", latencies.size());
         results.put("Avg. Latency in ms", StatUtils.mean(latencies));
         results.put("Std. deviation of latency in ms",
                     StatUtils.standardDeviation(latencies));
