@@ -9,12 +9,9 @@ CONFIG_FILE=benchmarks/conf/midobench.conf
 
 #For OS-X
 export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MPI_LIBRARY_PATH}
-export OPAL_PREFIX="${OMPI_DIR}"
 
 #For Linux
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MPI_LIBRARY_PATH}
-
-#export OPAL_DESTDIR="${MPI_DESTDIR}"
 
 #$1 data structure type, $2 data structure size, $3 write count
 java -Dmidobench.config=$CONFIG_FILE -Djute.maxbuffer=50M -Djava.library.path=${MPI_LIBRARY_PATH} -cp .:${BENCH_JAR}:${MPI_JAR} org.midonet.benchmarks.LatencyBench $1 $2 $3

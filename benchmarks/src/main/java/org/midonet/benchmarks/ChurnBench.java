@@ -239,10 +239,9 @@ public class ChurnBench extends MapSetBenchmark {
                     latencies.add(latency / (mpiSize - 1));
                 }
             }
+            computeStats(latencies);
+            printResults(log);
         }
-
-        computeStats(latencies);
-        printResults(log);
     }
 
     private void warmup(int opCount) throws Exception {
