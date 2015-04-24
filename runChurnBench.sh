@@ -8,8 +8,7 @@ MPI_JAR=$OMPI_DIR/lib/mpi.jar
 #For OS-X
 export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$MPI_LIBRARY_PATH
 
-# This export should be placed in openmpi/build/mpirun_wrapper.sh. The one below should be
-# commented out.
+#The line below should be present in the environment of all machines running the benchmark with MPI
 #export OPAL_DESTDIR=/home/ubuntu/bench/midokura-benchmarks/openmpi/build/install/opt/openMPI
 
 #$1 data structure type, $2 structure type, $3 write count, $4 write rate

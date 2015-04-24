@@ -559,11 +559,16 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         }
 
         protected void bindReactor() {
-            this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor")).toProvider(ZookeeperConnectionModule.ZookeeperReactorProvider.class).asEagerSingleton();
+            this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor"))
+                .toProvider(
+                    new ZookeeperConnectionModule.ZookeeperReactorProvider(nOfThreads))
+                    .asEagerSingleton();
         }
 
         public class ZookeeperReactorProvider implements Provider<Reactor> {
-            public ZookeeperReactorProvider() {
+            private int nOfThreads;
+            public ZookeeperReactorProvider(int nOfThreads) {
+                this.nOfThreads = nOfThreads;
             }
 
             public Reactor get() {
