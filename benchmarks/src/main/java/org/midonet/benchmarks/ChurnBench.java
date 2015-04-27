@@ -113,6 +113,12 @@ public class ChurnBench extends MapSetBenchmark {
                 }
             } while (!done);
         }
+        if (!warmup) {
+            for (int version = 0; version < opCount; version++) {
+                log.info("Process with rank {} version: {} ts: {}", mpiRank,
+                         version, versionTimestamps[version]);
+            }
+        }
     }
 
     private void macBench(int opCount, boolean warmup) throws InterruptedException {
@@ -220,21 +226,25 @@ public class ChurnBench extends MapSetBenchmark {
         long[] results = gather(versionTimestamps, mpiRoot);
 
         if (isMpiRoot()) {
+            log.info("Collecting results");
+
             // Compute latencies for versions of the map/set
             // that have a timestamp for all clients.
             for (int version = 0; version < writeCount; version++) {
                 boolean allHaveTS = true;
                 long latency = 0;
                 // The updater timestamp is the timestamp of process with rank 0
-                long upateTS = results[version * mpiSize];
+                long updateTS = results[version];
 
                 for (int process = 1; process < mpiSize; process++) {
-                    long clientTS = results[(version * mpiSize) + process];
+                    long clientTS = results[(process * writeCount) + version];
                     if (clientTS == 0) {
                         allHaveTS = false;
                         break;
                     } else {
-                       latency += (clientTS - upateTS);
+                       latency += (clientTS - updateTS);
+                        log.info("version: {} updateTS: {} client: {} ts: {}",
+                                 version, updateTS, process, clientTS);
                     }
                 }
 
