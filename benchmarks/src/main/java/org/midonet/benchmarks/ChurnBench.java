@@ -113,12 +113,6 @@ public class ChurnBench extends MapSetBenchmark {
                 }
             } while (!done);
         }
-        if (!warmup) {
-            for (int version = 0; version < opCount; version++) {
-                log.info("Process with rank {} version: {} ts: {}", mpiRank,
-                         version, versionTimestamps[version]);
-            }
-        }
     }
 
     private void macBench(int opCount, boolean warmup) throws InterruptedException {
@@ -303,6 +297,12 @@ public class ChurnBench extends MapSetBenchmark {
                     routeBench(writeCount, false /*warmup*/);
                     break;
             }
+            
+            for (int version = 0; version < writeCount; version++) {
+                log.info("Process with rank {} version: {} ts: {}", mpiRank,
+                         version, versionTimestamps[version]);
+            }
+
             collectResults();
         } catch(Exception e) {
             log.error("Exception caught when executing Churn benchmark", e);
