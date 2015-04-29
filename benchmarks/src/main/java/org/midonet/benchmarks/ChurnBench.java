@@ -297,7 +297,7 @@ public class ChurnBench extends MapSetBenchmark {
                     routeBench(writeCount, false /*warmup*/);
                     break;
             }
-            
+
             for (int version = 0; version < writeCount; version++) {
                 log.info("Process with rank {} version: {} ts: {}", mpiRank,
                          version, versionTimestamps[version]);

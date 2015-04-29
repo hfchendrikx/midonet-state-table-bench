@@ -9,7 +9,7 @@ rate_a=(1 100)
 for i in ${processes_a[@]}; do
    for j in ${size_a[@]}; do
        for k in ${rate_a[@]}; do
-           ./runChurnSlurm.sh $(($i/20 + 1)) $i ARP_TABLE $j $k 
+           ./runChurnSlurm.sh $i $(($i/20 + 1)) $i ARP_TABLE $j $k 
        done
    done
 done
@@ -22,6 +22,6 @@ rate_b=(1 10 20 30 40 50 60 70 80 90 100)
 
 for i in ${processes_b[@]}; do
    for j in ${rate_b[@]}; do
-       ./runChurnSlurm.sh $(($i/20 + 1)) $i ARP_TABLE $(($i * 20)) $j
+       ./runChurnSlurm.sh $i $(($i/20 + 1)) $i ARP_TABLE $(($i * 20)) $j
    done
 done
