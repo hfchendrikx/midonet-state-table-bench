@@ -1,7 +1,9 @@
 package org.midonet.benchmarks;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -49,7 +51,7 @@ public class ChurnBench extends MapSetBenchmark {
      * The maximum time during which a client waits for an update. Passed this time,
      * the client will consider the benchmark over.
      */
-    private static long CLIENT_TIMEOUT = 5000;
+    private static long CLIENT_TIMEOUT = 120000;
 
     private int dataSize;
     private int writeCount;
@@ -95,23 +97,15 @@ public class ChurnBench extends MapSetBenchmark {
                 new ReplicatedMapWatcher<>();
             arpTable.addWatcher(arpWatcher);
 
-            int lastVersion = -1;
-            boolean done = false;
+            int version;
 
             do {
                 arpWatcher.waitForResult(CLIENT_TIMEOUT);
                 ArpCacheEntry arpEntry = arpTable.get(DUMMY_IP);
-                int version = (int) arpEntry.expiry;
+                version = (int) arpEntry.expiry;
 
-                // If we get the same version, then we timed-out on the watcher
-                // and thus the benchmark is over.
-                if (version == lastVersion) {
-                    done = true;
-                } else {
-                    versionTimestamps[version] = System.currentTimeMillis();
-                    lastVersion = version;
-                }
-            } while (!done);
+                versionTimestamps[version] = System.currentTimeMillis();
+            } while (version < (writeCount - 1));
         }
     }
 
@@ -215,38 +209,69 @@ public class ChurnBench extends MapSetBenchmark {
         }
     }
 
+    private void computeDistribLatency(Map<Integer, List<Long>> latencyMap) {
+        for (int samples : latencyMap.keySet()) {
+            results.put("Avg. Latency in ms for " + samples + " clients with " +
+                latencyMap.get(samples).size() + " latencies is: " ,
+                        StatUtils.mean(latencyMap.get(samples)));
+        }
+    }
+
+    private long computeMaxTS(int version, long[] ts) {
+        long max = 0;
+
+        for (int client = 1; client < mpiSize; client++) {
+            if (ts[client * mpiSize + version] > max) {
+                max = ts[client * mpiSize + version];
+            }
+        }
+        return max;
+    }
+
+    private void computeTotalTime(long[] ts) {
+        long lastClientTS = computeMaxTS(writeCount - 1, ts);
+        long totalTime = lastClientTS - ts[0];
+        results.put("Total time for exp: ", new Long(totalTime));
+    }
+
     private void collectResults() throws MPIException {
         List<Long> latencies = new LinkedList<>();
+        Map<Integer, List<Long>> latencyMap = new HashMap<>();
         long[] results = gather(versionTimestamps, mpiRoot);
 
         if (isMpiRoot()) {
-            log.info("Collecting results");
+            log.info("Collecting results for: {} with size: {} and rate: {}",
+                     storageType, dataSize, writeRate);
 
             // Compute latencies for versions of the map/set
             // that have a timestamp for all clients.
             for (int version = 0; version < writeCount; version++) {
-                boolean allHaveTS = true;
                 long latency = 0;
+                int samples = 0;
+
                 // The updater timestamp is the timestamp of process with rank 0
                 long updateTS = results[version];
 
                 for (int process = 1; process < mpiSize; process++) {
                     long clientTS = results[(process * writeCount) + version];
-                    if (clientTS == 0) {
-                        allHaveTS = false;
-                        break;
-                    } else {
+                    if (clientTS != 0) {
                        latency += (clientTS - updateTS);
-                        log.info("version: {} updateTS: {} client: {} ts: {}",
-                                 version, updateTS, process, clientTS);
+                       samples++;
                     }
+                    log.info("version: {} updateTS: {} client: {} ts: {}",
+                             version, updateTS, process, clientTS);
                 }
 
-                if (allHaveTS) {
-                    latencies.add(latency / (mpiSize - 1));
+                if (samples > 0) {
+                    if (!latencyMap.containsKey(samples))
+                        latencyMap.put(samples, new LinkedList<Long>());
+                    latencyMap.get(samples).add(latency / samples);
+                    latencies.add(latency / samples);
                 }
             }
             computeStats(latencies);
+            computeDistribLatency(latencyMap);
+            computeTotalTime(results);
             printResults(log);
         }
     }

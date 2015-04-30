@@ -505,7 +505,7 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
 
     protected void printResults(Logger log) {
         System.out.println("*** Results for: " + storageType + " of size: " +
-                           dataSize + ":");
+                           dataSize + " :");
         for (String key: results.keySet())
             System.out.println("\t" + key + " " + results.get(key));
     }
