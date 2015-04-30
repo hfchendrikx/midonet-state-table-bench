@@ -275,7 +275,11 @@ public class ChurnBench extends MapSetBenchmark {
         try {
             populateTable();
             warmup(WARMUP_OP_COUNT);
-
+        } catch (Exception e) {
+            log.error(
+                "Caught exception when populating/warming-up the table/set");
+        }
+        try {
             // Wait for sufficiently long so that clients timeout
             if (isMpiRoot()) {
                 Thread.sleep(2 * CLIENT_TIMEOUT);
