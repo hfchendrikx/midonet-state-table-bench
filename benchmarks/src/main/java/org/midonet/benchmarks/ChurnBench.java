@@ -221,8 +221,8 @@ public class ChurnBench extends MapSetBenchmark {
         long max = 0;
 
         for (int client = 1; client < mpiSize; client++) {
-            if (ts[client * mpiSize + version] > max) {
-                max = ts[client * mpiSize + version];
+            if (ts[client * writeCount + version] > max) {
+                max = ts[client * writeCount + version];
             }
         }
         return max;
