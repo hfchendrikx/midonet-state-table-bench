@@ -273,8 +273,10 @@ public class ChurnBench extends MapSetBenchmark {
 
     public void run() {
         try {
-            populateTable();
-            warmup(WARMUP_OP_COUNT);
+            if (isMpiRoot()) {
+                populateTable();
+                warmup(WARMUP_OP_COUNT);
+            }
         } catch (Exception e) {
             log.error(
                 "Caught exception when populating/warming-up the table/set");

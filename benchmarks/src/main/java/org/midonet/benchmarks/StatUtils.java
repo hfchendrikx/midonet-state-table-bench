@@ -40,6 +40,10 @@ public class StatUtils {
         Collections.sort(values);
 
         int index = Math.round(((float) values.size()) * percentile);
-        return values.get(index);
+        if (values.size() > index) {
+            return values.get(index);
+        } else {
+            return 0;
+        }
     }
 }

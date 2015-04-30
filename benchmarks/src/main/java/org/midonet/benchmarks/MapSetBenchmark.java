@@ -106,7 +106,10 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         ZkDirectory zkDir =
             new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
                             null /* ACL */, new TryCatchReactor("Zookeeper", 1));
-        prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
+
+        if (isMpiRoot()) {
+            prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
+        }
 
         switch (storageType) {
             case MAC_TABLE:
