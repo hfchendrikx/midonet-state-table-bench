@@ -255,8 +255,9 @@ public class ChurnBench extends MapSetBenchmark {
                 for (int process = 1; process < mpiSize; process++) {
                     long clientTS = results[(process * writeCount) + version];
                     if (clientTS != 0) {
-                       latency += (clientTS - updateTS);
-                       samples++;
+                        latencies.add(clientTS - updateTS);
+                        latency += (clientTS - updateTS);
+                        samples++;
                     }
                     log.info("version: {} updateTS: {} client: {} ts: {}",
                              version, updateTS, process, clientTS);
@@ -266,7 +267,6 @@ public class ChurnBench extends MapSetBenchmark {
                     if (!latencyMap.containsKey(samples))
                         latencyMap.put(samples, new LinkedList<Long>());
                     latencyMap.get(samples).add(latency / samples);
-                    latencies.add(latency / samples);
                 }
             }
             computeStats(latencies);
