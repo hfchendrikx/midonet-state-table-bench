@@ -1,0 +1,27 @@
+width=65
+height=60
+set output "churnBench-map.jpg"
+set terminal jpeg
+set key noreverse enhanced autotitles nobox inside right 
+unset ylabel
+set size width/100., height/100.
+set ylabel 'Latency (ms)' offset 2,0
+set xlabel 'Updates per second'
+set xtics nomirror
+set ytics nomirror
+set yrange [10:10000]
+set xrange [0:120]
+unset logscale
+set logscale y
+set lmargin 8.3
+set style line 1 lw 2 lc rgb "red" lt 11 pt 1
+set style line 2 lw 2 lc rgb "blue" lt 11 pt 2
+set style line 3 lw 2 lc rgb "#008A00" lt 11 pt 9 
+set style line 4 lw 2 lc rgb "orange" lt 11 pt 7
+set style line 5 lw 2 lc rgb "#D2691E" lt 11 pt 5
+set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
+
+unset label
+
+plot "churnbench-arptable-1K-3nodes.txt" using 1:2:3:4 with yerrorbars title '1K' ls 3, "churnbench-arptable-10K-3nodes.txt" using 1:2:3:4 with yerrorbars title '10K' ls 4, "churnbench-arptable-20K-3nodes.txt" using 1:2:3:4 with yerrorbars title '20K' ls 5
+

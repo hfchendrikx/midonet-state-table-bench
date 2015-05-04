@@ -1,0 +1,5 @@
+#for 10K entries, rate, avrg. latency, std. dev, y error high, 90-percentile latency
+1 1047.1 1047.1 1872.4 1952
+10 650.4 650.4 714.4 687
+50 508.7 508.7 751.4 769
+100 630.1 630.1 719.5 762

@@ -23,5 +23,5 @@ set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
 
 unset label
 
-plot "arptable-3nodes.txt" using 1:2:3 with yerrorbars title 'ARP' ls 3, "mactable-3nodes.txt" using 1:2:3 with yerrorbars title 'MAC' ls 4
+plot "latencybench-arptable-3nodes.txt" using 1:2:3 with yerrorbars title 'ARP' ls 3, "latencybench-mactable-3nodes.txt" using 1:2:3 with yerrorbars title 'MAC' ls 4
 

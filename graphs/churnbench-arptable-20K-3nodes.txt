@@ -1,0 +1,3 @@
+#for 20K entries, rate, avrg. latency, std. dev, 90-percentile latency
+10 1223 1223 1456.9 1333
+50 1231.6 1231.6 1341.4 1270

@@ -1,1 +1,1 @@
-gnuplot latencyBench-map latencyBench-set
+gnuplot latencyBench-map latencyBench-set churnBench-map

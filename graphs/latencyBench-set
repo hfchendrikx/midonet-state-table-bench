@@ -23,4 +23,4 @@ set style line 6 lw 2 lc rgb "purple" lt 11 pt 5
 
 unset label
 
-plot "routingtable-3nodes.txt" using 1:2:3 with yerrorbars title 'Route' ls 5
+plot "latencybench-routingtable-3nodes.txt" using 1:2:3 with yerrorbars title 'Route' ls 5

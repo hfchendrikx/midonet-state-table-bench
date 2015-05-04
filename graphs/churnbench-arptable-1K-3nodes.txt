@@ -1,0 +1,5 @@
+#for 1K entries, rate, avrg. latency, std. dev, 90-percentile latency
+1 52.7 52.7 75.3 83
+10 78.7 78.7 108.8 119
+50 81.8 81.8 95.9 97
+100 74.6 74.6 104.1 105
