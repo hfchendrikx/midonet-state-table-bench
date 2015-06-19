@@ -6,16 +6,24 @@ import java.util.UUID;
 
 import com.google.inject.Injector;
 
+import org.I0Itec.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.observers.TestObserver;
+
+import org.midonet.cluster.data.storage.ArpMergedMap;
+import org.midonet.cluster.data.storage.KafkaBus;
+import org.midonet.cluster.data.storage.KafkaUtils;
+import org.midonet.cluster.data.storage.MergedMapConfig;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
+import org.midonet.util.reactivex.AwaitableObserver;
 
-import mpi.MPI;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * This class implements the LatencyBench described in the following document:
@@ -36,12 +44,28 @@ public class LatencyBench extends MapSetBenchmark {
     private int dataSize;
     private int writeCount;
 
-    public LatencyBench(Injector injector, String mpiHosts,
-                        StorageType storageType, int size, int writeCount)
+    public LatencyBench(StorageType storageType, int size, int writeCount,
+                        ZkClient zkclient)
         throws Exception {
-        super(storageType, injector, mpiHosts, size);
+        super(storageType, size, zkclient);
         this.dataSize = size;
         this.writeCount = writeCount;
+    }
+
+    private List<Long> arpMergedMapBench(int opCount) throws Exception {
+        List<Long> latencies = new LinkedList<>();
+
+        TestObserver obs = ArpMergedMap.arpMapObserver(arpMergedMap);
+
+        for (int i = 0; i < opCount; i++) {
+            long start = System.currentTimeMillis();
+            IPv4Addr ip = randomExistingIP();
+            arpMergedMap.putOpinion(ip, randomArpEntry());
+            ArpMergedMap.awaitForObserverEvents(obs, i, 1000 /* timeout */);
+            long end = System.currentTimeMillis();
+            latencies.add(end-start);
+        }
+        return latencies;
     }
 
     private List<Long> arpBench(int opCount) throws InterruptedException {
@@ -103,13 +127,17 @@ public class LatencyBench extends MapSetBenchmark {
         return latencies;
     }
 
-    private void warmup(int opCount) throws InterruptedException,
-                                            SerializationException {
+    private void warmup(int opCount) throws Exception {
         switch (storageType) {
             case ARP_TABLE:
                 log.info("Warming-up replicated ARP table with {} updates",
                          opCount);
                 arpBench(opCount);
+                break;
+            case ARP_MERGED_MAP:
+                log.info("Warming-up ARP merged map with {} updates",
+                         opCount);
+                arpMergedMapBench(opCount);
                 break;
             case MAC_TABLE:
                 log.info("Warming-up replicated MAC table with {} updates",
@@ -134,6 +162,9 @@ public class LatencyBench extends MapSetBenchmark {
                      writeCount);
 
             switch (storageType) {
+                case ARP_MERGED_MAP:
+                    latencies = arpMergedMapBench(writeCount);
+                    break;
                 case ARP_TABLE:
                     latencies = arpBench(writeCount);
                     break;
@@ -153,11 +184,13 @@ public class LatencyBench extends MapSetBenchmark {
 
     public static void main(String[] args) {
         if (args.length == 3) {
-            try {
-                MPI.Init(args);
-            } catch (Exception e) {
-                log.error("Impossible to initialize MPI", e);
-            }
+//            try {
+//                MPI.Init(args);
+//            } catch (Exception e) {
+//                log.error("Impossible to initialize MPI", e);
+//            }
+
+            KafkaUtils.startKafkaServer(KafkaBus.defaultConfig());
 
             StorageType type = StorageType.valueOf(args[0]);
             int dataSize = Integer.parseInt(args[1]);
@@ -168,14 +201,18 @@ public class LatencyBench extends MapSetBenchmark {
                      writeCount);
 
             try {
-                Injector injector = MapSetBenchmark.createInjector(configFile);
-                String mpiHosts = getMpiHosts(configFile);
-                LatencyBench bench = new LatencyBench(injector, mpiHosts, type,
-                                                      dataSize, writeCount);
+                //Injector injector = MapSetBenchmark.createInjector(configFile);
+//                String mpiHosts = getMpiHosts(configFile);
+                LatencyBench bench =
+                    new LatencyBench(type, dataSize, writeCount,
+                                     KafkaUtils.kafkaServer().zkClient());
                 bench.run();
             } catch (Exception e) {
-                log.error("Exception {} was caught during the benchmark", e);
+                log.error("An exception was caught during the benchmark", e);
             }
+
+            KafkaUtils.stopKafkaServer();
+            System.exit(0);
 
         } else {
             log.error("Please specify the data structure "

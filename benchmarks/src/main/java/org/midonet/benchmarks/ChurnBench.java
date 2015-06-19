@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import com.google.inject.Injector;
 
+import org.I0Itec.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,10 +64,14 @@ public class ChurnBench extends MapSetBenchmark {
     // For the client, this is the reception time of the table version.
     private long[] versionTimestamps;
 
-    public ChurnBench(Injector injector, String mpiHosts,
+    // TO BE REMOVED
+    private int mpiRank = 0;
+    private int mpiSize = 1;
+
+    public ChurnBench(Injector injector,
                       StorageType storageType, int size, int writeCount,
-                      int writeRate) throws Exception {
-        super(storageType, injector, mpiHosts, size);
+                      int writeRate, ZkClient zkClient) throws Exception {
+        super(storageType, size, zkClient);
         this.dataSize = size;
         this.writeCount = writeCount;
         this.writeRate = writeRate;
@@ -237,9 +242,9 @@ public class ChurnBench extends MapSetBenchmark {
     private void collectResults() throws MPIException {
         List<Long> latencies = new LinkedList<>();
         Map<Integer, List<Long>> latencyMap = new HashMap<>();
-        long[] results = gather(versionTimestamps, mpiRoot);
+        long[] results = null; //gather(versionTimestamps, mpiRoot);
 
-        if (isMpiRoot()) {
+        if (mpiRank == 0) {
             log.info("Collecting results for: {} with size: {} and rate: {}",
                      storageType, dataSize, writeRate);
 
@@ -298,7 +303,7 @@ public class ChurnBench extends MapSetBenchmark {
 
     public void run() {
         try {
-            if (isMpiRoot()) {
+            if (mpiRank == 0) {
                 populateTable();
                 warmup(WARMUP_OP_COUNT);
             }
@@ -308,13 +313,13 @@ public class ChurnBench extends MapSetBenchmark {
         }
         try {
             // Wait for sufficiently long so that clients timeout
-            if (isMpiRoot()) {
+            if (mpiRank == 0) {
                 Thread.sleep(2 * CLIENT_TIMEOUT);
             }
             log.info("MPI rank: {}, waiting on barrier, mpi rank", mpiRank);
             // All processes (the updater and the clients) synchronize with this
             // barrier to start the benchmark approximately at the same time.
-            barrier();
+            //barrier();
             log.info("MPI rank: {}, executing benchmark", mpiRank);
 
             switch (storageType) {
@@ -352,9 +357,10 @@ public class ChurnBench extends MapSetBenchmark {
                 MPI.Init(args);
                 Injector injector = MapSetBenchmark.createInjector(configFile);
                 String mpiHosts = getMpiHosts(configFile);
-                ChurnBench churnBench = new ChurnBench(injector, mpiHosts,
+                ChurnBench churnBench = new ChurnBench(injector,
                                                        storageType, size,
-                                                       writeCount, writeRate);
+                                                       writeCount, writeRate,
+                                                       null /* zkClient */);
                 churnBench.run();
             } catch(Exception e) {
                 log.warn("Unable to initialize churn benchmark", e);

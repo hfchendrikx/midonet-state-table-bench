@@ -16,7 +16,7 @@ allprojects {
     apply plugin: 'idea'
 
     plugins.withType(ScalaPlugin).whenPluginAdded {
-        dependencies { compile libraries.scala }
+        dependencies { compile "org.scala-lang:scala-library:2.11.2" }
         tasks.withType(ScalaCompile) {
             scalaCompileOptions.fork = true
             scalaCompileOptions.forkOptions.jvmArgs = ['-XX:MaxPermSize=1024m']

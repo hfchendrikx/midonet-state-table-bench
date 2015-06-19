@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'scala'
 apply plugin: 'protobuf'
 apply plugin: 'application'
 
@@ -7,6 +8,7 @@ def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
                   "/lib/mpi.jar")
 
 project.ext {
+    scalaLangLevel = 'Scala 2.11.2'
     midonetVersion = "2015.03-SNAPSHOT"
     midolmanJar = "${midonetPath}/midolman/build/libs/midolman-${midonetVersion}.jar"
     midoutilJar = "${midonetPath}/midonet-util/build/libs/midonet-util-${midonetVersion}.jar"
@@ -21,7 +23,13 @@ project.ext {
                     .listFiles() .findAll {it.name.endsWith('.jar')})
 }
 
-compileJava.dependsOn(project(':openmpi').tasks.getByName('build'))
+sourceSets.main.scala.srcDir "src/main/java"
+sourceSets.main.java.srcDirs = []
+
+compileScala {
+    dependsOn(project(':openmpi').tasks.getByName('build'))
+}
+
 jar {
     manifest {
         attributes 'Implementation-Title': 'Topology Benchmark Applications'
@@ -42,12 +50,16 @@ dependencies {
     compile project(':openmpi')
     compile files("${mpiJar}")
     compile midonetDeps
+    compile "org.scala-lang:scala-library:2.11.2"
     compile "com.typesafe.scala-logging:scala-logging_2.11:3.1.0"
     compile "com.typesafe:config:1.2.1"
+    compile "org.codehaus.jackson:jackson-core-asl:1.9.3"
+    compile "io.reactivex:rxjava:1.0.4"
+    compile "com.typesafe.akka:akka-actor_2.11:2.3.6"
+    compile "com.fasterxml.jackson.core:jackson-annotations:2.3.2"
     compile "io.dropwizard.metrics:metrics-core:3.1.0"
     compile "io.dropwizard.metrics:metrics-ganglia:3.1.0"
     compile "org.infinispan:infinispan-commons:7.0.2.Final"
-    compile "ch.qos.logback:logback-classic:1.0.1"
     compile "com.google.guava:guava:15.0"
     compile "com.google.inject:guice:3.0"
     compile "com.google.protobuf:protobuf-java:2.6.1"
@@ -58,15 +70,19 @@ dependencies {
     compile "org.apache.commons:commons-lang3:3.3"
     compile "org.apache.curator:curator-recipes:2.6.0"
     compile "org.scala-lang:scala-library:2.11.2"
+    compile "org.apache.curator:curator-test:2.7.1"
+    compile "org.apache.kafka:kafka_2.11:0.8.2.1"
+    compile "org.apache.kafka:kafka-clients:0.8.2.1"
     compile "org.slf4j:slf4j-api:1.7.7"
+    compile "ch.qos.logback:logback-classic:1.0.1"
     compile dependencies.create("org.apache.zookeeper:zookeeper:3.4.6") {
         exclude group: 'jline', module: 'jline'
         exclude group: 'javax.jms', module: 'javax.jms'
         exclude group: 'com.sun.jdmk', module: 'jmxtools'
         exclude group: 'com.sun.jmx', module: 'jmxri'
         exclude group: 'io.netty', module: 'netty'
-        exclude group: 'log4j', module: 'log4j'
         exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+        exclude group: 'log4j', module: 'log4j'
     }
 
     runtime midolmanDeps
@@ -75,5 +91,3 @@ dependencies {
 
     testCompile "junit:junit:4.11"
 }
-
-

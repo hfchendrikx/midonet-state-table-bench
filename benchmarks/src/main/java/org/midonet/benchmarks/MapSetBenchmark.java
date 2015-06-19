@@ -20,6 +20,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Names;
 import com.typesafe.config.Config;
 
+import org.I0Itec.zkclient.ZkClient;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -27,7 +28,10 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.midonet.benchmarks.mpi.MPIBenchApp;
+import rx.observers.TestObserver;
+
+import org.midonet.cluster.data.storage.ArpMergedMap;
+import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.cluster.storage.MidonetBackendConfig;
 import org.midonet.cluster.storage.MidonetBackendModule;
 import org.midonet.conf.MidoNodeConfigurator;
@@ -55,15 +59,13 @@ import org.midonet.packets.MAC;
 import org.midonet.util.eventloop.Reactor;
 import org.midonet.util.eventloop.TryCatchReactor;
 
-import mpi.MPI;
-
 /**
  * This is the super-class for various benchmarks on replicated maps/sets.
  */
-public abstract class MapSetBenchmark extends MPIBenchApp {
+public abstract class MapSetBenchmark { // extends MPIBenchApp {
 
     private static final Logger log =
-        LoggerFactory.getLogger(LatencyBench.class);
+        LoggerFactory.getLogger(MapSetBenchmark.class);
 
     // When populating a table, we wait until dataSize * FILL_RATIO
     // entries have been inserted in the table before proceeding to the
@@ -72,16 +74,21 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     protected static int WARMUP_OP_COUNT = 300;
     protected Map<String, Object> results;
 
+    /* Maximum time to wait for a merged map population */
+    protected static final long POPULATE_TIMEOUT = 60000;
+
     public enum StorageType {
         MAC_TABLE,
         ARP_TABLE,
-        ROUTING_TABLE
+        ROUTING_TABLE,
+        ARP_MERGED_MAP
     }
     protected StorageType storageType;
     protected int dataSize;
 
     protected Serializer serializer;
     protected ArpTable arpTable;
+    protected MergedMap<IPv4Addr, ArpCacheEntry> arpMergedMap;
     protected Map<Integer, IPv4Addr> arpTableKeys;
     protected MacPortMap macTable;
     protected Map<Integer, MAC> macTableKeys;
@@ -89,38 +96,41 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
     protected ArrayList<Route> routes;
     protected Random rnd;
 
-    public MapSetBenchmark(StorageType storageType, Injector injector,
-                           String mpiHosts, int dataSize) throws Exception {
+    public MapSetBenchmark(StorageType storageType, int dataSize,
+                           ZkClient zkClient)
+        throws Exception {
 
-        super(MPI.COMM_WORLD.getSize(), MPI.COMM_WORLD.getRank(),
-              mpiHosts);
+        //super(MPI.COMM_WORLD.getSize(), MPI.COMM_WORLD.getRank(),
+        //      mpiHosts);
 
         this.results = new HashMap<>();
         this.storageType = storageType;
         this.dataSize = dataSize;
         this.rnd = new Random();
-        this.serializer = injector.getInstance(Serializer.class);
-        ZkConnection zkConn = injector.getInstance(ZkConnection.class);
-        MidonetBackendConfig config =
-            injector.getInstance(MidonetBackendConfig.class);
-        ZkDirectory zkDir =
-            new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
-                            null /* ACL */, new TryCatchReactor("Zookeeper", 1));
+        //this.serializer = injector.getInstance(Serializer.class);
+        //ZkConnection zkConn = injector.getInstance(ZkConnection.class);
+        //MidonetBackendConfig config =
+         //   injector.getInstance(MidonetBackendConfig.class);
+        //ZkDirectory zkDir =
+        //    new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
+                            //null /* ACL */, new TryCatchReactor("Zookeeper", 1));
 
-        if (isMpiRoot()) {
-            prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
-        }
+        //if (isMpiRoot()) {
+        //    prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
+        //}
 
         switch (storageType) {
             case MAC_TABLE:
-                initMacTable(zkDir);
+                //initMacTable(zkDir);
                 break;
             case ARP_TABLE:
-                initArpTable(zkDir);
+                //initArpTable(zkDir);
                 break;
             case ROUTING_TABLE:
-                initRouteSet(zkDir);
+                //initRouteSet(zkDir);
                 break;
+            case ARP_MERGED_MAP:
+                initArpMergedMap(zkClient);
         }
     }
 
@@ -350,6 +360,9 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             case ARP_TABLE:
                 populateArpTable();
                 break;
+            case ARP_MERGED_MAP:
+                populateArpMergedMap();
+                break;
             case MAC_TABLE:
                 populateMacTable();
                 break;
@@ -369,6 +382,21 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         // We don't necessarily receive all updates so wait only until 90%
         // of the expected size is reached.
         } while (size < (FILL_RATIO * dataSize));
+    }
+
+    protected void populateArpMergedMap() {
+        log.info("Populating ARP merged map with {} entries", dataSize);
+        long start = System.currentTimeMillis();
+
+        TestObserver obs = ArpMergedMap.arpMapObserver(arpMergedMap);
+        for (int i=0; i < dataSize; i++) {
+            IPv4Addr ip = randomIP();
+            arpMergedMap.putOpinion(ip, randomArpEntry());
+            arpTableKeys.put(i, ip);
+            ArpMergedMap.awaitForObserverEvents(obs, i, POPULATE_TIMEOUT);
+        }
+        long end = System.currentTimeMillis();
+        log.info("Population completed in {} ms", (end-start));
     }
 
     protected void populateArpTable() throws InterruptedException {
@@ -422,6 +450,11 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
         macTable.removeWatcher(macWatcher);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
+    }
+
+    private void initArpMergedMap(ZkClient zkClient) {
+        arpTableKeys = new HashMap<>(dataSize);
+        arpMergedMap = ArpMergedMap.newArpMap("arp", "owner", zkClient);
     }
 
     private void initRouteSet(ZkDirectory zkDir) {
@@ -492,7 +525,6 @@ public abstract class MapSetBenchmark extends MPIBenchApp {
             throw new IllegalArgumentException("Configuration file: " +
                                                configFile + " does not exist");
     }
-
 
     protected void computeStats(List<Long> latencies) {
         results.put("Number of latencies: ", latencies.size());
