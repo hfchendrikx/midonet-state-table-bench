@@ -1,5 +1,6 @@
 project.ext {
     versions = [java: "1.7"]
+    scalaLangLevel = 'Scala 2.11.2'
 }
 
 buildscript {

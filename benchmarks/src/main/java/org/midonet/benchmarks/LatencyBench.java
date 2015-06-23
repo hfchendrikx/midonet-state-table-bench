@@ -4,8 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.inject.Injector;
-
 import org.I0Itec.zkclient.ZkClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +12,11 @@ import rx.observers.TestObserver;
 
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
-import org.midonet.cluster.data.storage.KafkaUtils;
-import org.midonet.cluster.data.storage.MergedMapConfig;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
-import org.midonet.util.reactivex.AwaitableObserver;
-
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * This class implements the LatencyBench described in the following document:
@@ -190,8 +183,6 @@ public class LatencyBench extends MapSetBenchmark {
 //                log.error("Impossible to initialize MPI", e);
 //            }
 
-            KafkaUtils.startKafkaServer(KafkaBus.defaultConfig());
-
             StorageType type = StorageType.valueOf(args[0]);
             int dataSize = Integer.parseInt(args[1]);
             int writeCount = Integer.parseInt(args[2]);
@@ -205,13 +196,11 @@ public class LatencyBench extends MapSetBenchmark {
 //                String mpiHosts = getMpiHosts(configFile);
                 LatencyBench bench =
                     new LatencyBench(type, dataSize, writeCount,
-                                     KafkaUtils.kafkaServer().zkClient());
+                                     new ZkClient(KafkaBus.zkHosts()));
                 bench.run();
             } catch (Exception e) {
                 log.error("An exception was caught during the benchmark", e);
             }
-
-            KafkaUtils.stopKafkaServer();
             System.exit(0);
 
         } else {

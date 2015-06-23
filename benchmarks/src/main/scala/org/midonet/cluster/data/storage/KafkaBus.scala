@@ -64,18 +64,8 @@ trait KafkaSerialization[K, V >: Null <: AnyRef] {
 }
 
 object KafkaBus {
-    private def makeZkHostList: String = {
-        val port = 2181 //8000 + Random.nextInt(1000)
-        "localhost:" + port
-    }
-    val zkHosts = makeZkHostList
-
-
-    private def makeBrokerList: String = {
-        val port = 9000 + Random.nextInt(1000)
-        "localhost:" + port
-    }
-    val brokers = makeBrokerList
+    val zkHosts = System.getProperty("zk.hosts")
+    val brokers = System.getProperty("kafka.hosts")
 
     def defaultConfig(): MergedMapConfig = {
         val props = new Properties()
