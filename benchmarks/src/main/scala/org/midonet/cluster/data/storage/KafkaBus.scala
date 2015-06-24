@@ -201,7 +201,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
         prodProps.put("bootstrap.servers", config.brokers)
         /* The number of acks the producer requires the broker to have received
            from the replicas before considering a request complete */
-        prodProps.put("acks", "-1")
+        prodProps.put("request.required.acks", "-1")
         prodProps.put("min.insync.replicas",
                       computeMajority(config.replicationFactor).toString)
         prodProps.put("key.serializer", classOf[StringSerializer].getName)
