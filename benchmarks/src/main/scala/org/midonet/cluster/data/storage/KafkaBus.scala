@@ -72,7 +72,7 @@ object KafkaBus {
         val props = new Properties()
         props.put("kafka.brokers", brokers)
         props.put("kafka.zk.hosts", zkHosts)
-        props.put("kafka.replication.factor", "3")
+        props.put("kafka.replication.factor", "1")
         new MergedMapConfig(ConfigFactory.parseProperties(props))
     }
 

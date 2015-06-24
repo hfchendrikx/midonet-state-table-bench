@@ -396,7 +396,14 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         }
         ArpMergedMap.awaitForObserverEvents(obs, dataSize, POPULATE_TIMEOUT);
         long end = System.currentTimeMillis();
-        log.info("Population completed in {} ms", (end-start));
+        long duration = end - start;
+
+        if (arpMergedMap.size() == dataSize) {
+            log.info("Population completed in {} ms", duration);
+        } else {
+            log.info("Only populated arp merged map with: {} entries in "
+                     + "{} ms", arpMergedMap.size(), duration);
+        }
     }
 
     protected void populateArpTable() throws InterruptedException {
