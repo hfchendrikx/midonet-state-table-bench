@@ -56,7 +56,7 @@ public class LatencyBench extends MapSetBenchmark {
             long start = System.currentTimeMillis();
             IPv4Addr ip = randomExistingIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
-            ArpMergedMap.awaitForObserverEvents(obs, i, 1000 /* timeout */);
+            ArpMergedMap.awaitForObserverEvents(obs, i, 10000 /* timeout */);
             long end = System.currentTimeMillis();
             latencies.add(end-start);
         }

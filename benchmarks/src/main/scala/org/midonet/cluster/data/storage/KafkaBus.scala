@@ -105,7 +105,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
     private val bufferSize = 10000
     private val inputSubj = PublishSubject.create[Opinion]()
     private val opinionInput =
-        inputSubj.onBackpressureBuffer(bufferSize)
+        inputSubj.onBackpressureBuffer()
     private val outputSubj = PublishSubject.create[Opinion]()
 
     //Topics are automatically created if they do no exist
@@ -165,7 +165,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
             producer.send(msg, sendCallBack)
         }
     }
-    outputSubj.onBackpressureBuffer(bufferSize) subscribe producerObserver
+    outputSubj.onBackpressureBuffer() subscribe producerObserver
 
     private def createTopicIfNeeded(config: MergedMapConfig): Unit = {
         if (!AdminUtils.topicExists(zkClient, topic = mapId.toString)) {
