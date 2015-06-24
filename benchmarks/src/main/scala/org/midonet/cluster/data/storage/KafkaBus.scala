@@ -72,7 +72,7 @@ object KafkaBus {
         val props = new Properties()
         props.put("kafka.brokers", brokers)
         props.put("kafka.zk.hosts", zkHosts)
-        props.put("kafka.replication.factor", "1")
+        props.put("kafka.replication.factor", "3")
         new MergedMapConfig(ConfigFactory.parseProperties(props))
     }
 
@@ -172,6 +172,8 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
             val props = new Properties()
             // Always keep the last message for each key in the log.
             props.put("cleanup.policy", "compact")
+            props.put("min.insync.replicas",
+                      computeMajority(config.replicationFactor).toString)
             AdminUtils
                 .createTopic(zkClient, topic = mapId.toString, partitions = 1,
                              config.replicationFactor, props)
@@ -201,7 +203,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
         prodProps.put("bootstrap.servers", config.brokers)
         /* The number of acks the producer requires the broker to have received
            from the replicas before considering a request complete */
-        prodProps.put("request.required.acks", "-1")
+        prodProps.put("request.required.acks", "all")
         prodProps.put("min.insync.replicas",
                       computeMajority(config.replicationFactor).toString)
         prodProps.put("key.serializer", classOf[StringSerializer].getName)
