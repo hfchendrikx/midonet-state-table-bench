@@ -39,7 +39,7 @@ public class StatUtils {
     public static long percentile(List<Long> values, float percentile) {
         Collections.sort(values);
 
-        int index = Math.round(((float) values.size()) * percentile);
+        int index = (int) Math.floor(((float) values.size()) * percentile);
         if (values.size() > index) {
             return values.get(index);
         } else {
