@@ -393,8 +393,8 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
             IPv4Addr ip = randomIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
-            ArpMergedMap.awaitForObserverEvents(obs, i, POPULATE_TIMEOUT);
         }
+        ArpMergedMap.awaitForObserverEvents(obs, dataSize, POPULATE_TIMEOUT);
         long end = System.currentTimeMillis();
         log.info("Population completed in {} ms", (end-start));
     }

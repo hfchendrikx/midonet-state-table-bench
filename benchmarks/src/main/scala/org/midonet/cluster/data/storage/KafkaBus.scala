@@ -102,7 +102,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
     private val log =
         Logger(LoggerFactory.getLogger(getClass.getName + "-" + mapId.toString))
 
-    private val bufferSize = 1000
+    private val bufferSize = 10000
     private val inputSubj = PublishSubject.create[Opinion]()
     private val opinionInput =
         inputSubj.onBackpressureBuffer(bufferSize)
