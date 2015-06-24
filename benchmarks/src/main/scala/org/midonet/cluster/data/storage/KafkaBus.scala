@@ -76,9 +76,10 @@ object KafkaBus {
         new MergedMapConfig(ConfigFactory.parseProperties(props))
     }
 
-    val zkClient = new ZkClient(KafkaBus.zkHosts, 5000 /*session timeout*/,
-                                5000 /*connection timeout*/,
-                                ZKStringSerializer)
+    val zookeeperClient = new ZkClient(KafkaBus.zkHosts,
+                                       5000 /*session timeout*/,
+                                       5000 /*connection timeout*/,
+                                       ZKStringSerializer)
 }
 
 /**

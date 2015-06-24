@@ -200,7 +200,7 @@ public class LatencyBench extends MapSetBenchmark {
 
                 LatencyBench bench =
                     new LatencyBench(type, dataSize, writeCount,
-                                     KafkaBus.zkClient());
+                                     KafkaBus.zookeeperClient());
                 bench.run();
             } catch (Exception e) {
                 log.error("An exception was caught during the benchmark", e);
