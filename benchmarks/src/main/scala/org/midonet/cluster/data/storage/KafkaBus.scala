@@ -30,6 +30,7 @@ import kafka.admin.AdminUtils
 import kafka.consumer.{ConsumerConfig, ConsumerIterator}
 import kafka.javaapi.consumer.ConsumerConnector
 import kafka.serializer.{Decoder, StringDecoder}
+import kafka.utils.ZKStringSerializer
 import org.I0Itec.zkclient.ZkClient
 import org.apache.kafka.clients.producer.{Callback, KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.{Serializer, StringSerializer}
@@ -71,9 +72,13 @@ object KafkaBus {
         val props = new Properties()
         props.put("kafka.brokers", brokers)
         props.put("kafka.zk.hosts", zkHosts)
-        props.put("kafka.replication.factor", "1")
+        props.put("kafka.replication.factor", "3")
         new MergedMapConfig(ConfigFactory.parseProperties(props))
     }
+
+    val zkClient = new ZkClient(KafkaBus.zkHosts, 5000 /*session timeout*/,
+                                5000 /*connection timeout*/,
+                                ZKStringSerializer)
 }
 
 /**

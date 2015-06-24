@@ -18,6 +18,8 @@ import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
 
+import kafka.utils.ZKStringSerializer$;
+
 /**
  * This class implements the LatencyBench described in the following document:
  * https://docs.google.com/a/midokura.com/document/d/1p4tAg4ejoV8lCoQCPLTFMPLaA8OE2ktgjXLdfPKM3SI.
@@ -194,9 +196,11 @@ public class LatencyBench extends MapSetBenchmark {
             try {
                 //Injector injector = MapSetBenchmark.createInjector(configFile);
 //                String mpiHosts = getMpiHosts(configFile);
+
+
                 LatencyBench bench =
                     new LatencyBench(type, dataSize, writeCount,
-                                     new ZkClient(KafkaBus.zkHosts()));
+                                     KafkaBus.zkClient());
                 bench.run();
             } catch (Exception e) {
                 log.error("An exception was caught during the benchmark", e);
