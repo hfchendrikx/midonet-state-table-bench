@@ -18,7 +18,7 @@ import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
 
-import kafka.utils.ZKStringSerializer$;
+import scala.Tuple2;
 
 /**
  * This class implements the LatencyBench described in the following document:
@@ -59,10 +59,18 @@ public class LatencyBench extends MapSetBenchmark {
             long start = System.nanoTime();
             IPv4Addr ip = randomExistingIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
-            ArpMergedMap.awaitForObserverEvents(obs, mapSize + i,
+            ArpMergedMap.awaitForObserverEvents(obs, mapSize + i + 1,
                                                 5000 /* timeout */);
             long end = System.nanoTime();
-            latencies.add(end-start);
+            Tuple2 notif = (Tuple2<IPv4Addr, ArpCacheEntry>)
+                obs.getOnNextEvents().get(mapSize + i);
+            IPv4Addr rcvdIp = (IPv4Addr) notif._1();
+            
+            if (ip.equals(rcvdIp)) {
+                latencies.add(end-start);
+            } else {
+                System.out.println("Got notified for incorrect key");
+            }
         }
         return latencies;
     }
