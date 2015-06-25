@@ -65,7 +65,7 @@ public class LatencyBench extends MapSetBenchmark {
             Tuple2 notif = (Tuple2<IPv4Addr, ArpCacheEntry>)
                 obs.getOnNextEvents().get(mapSize + i);
             IPv4Addr rcvdIp = (IPv4Addr) notif._1();
-            
+
             if (ip.equals(rcvdIp)) {
                 latencies.add(end-start);
             } else {
