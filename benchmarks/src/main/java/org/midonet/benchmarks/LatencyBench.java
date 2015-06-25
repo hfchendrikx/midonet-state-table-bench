@@ -51,12 +51,16 @@ public class LatencyBench extends MapSetBenchmark {
         List<Long> latencies = new LinkedList<>();
 
         TestObserver obs = ArpMergedMap.arpMapObserver(arpMergedMap);
+        /* The merged map observable first emits its content */
+        int mapSize = arpMergedMap.size();
+        ArpMergedMap.awaitForObserverEvents(obs, mapSize, 30000 /*timeout*/);
 
         for (int i = 0; i < opCount; i++) {
             long start = System.nanoTime();
             IPv4Addr ip = randomExistingIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
-            ArpMergedMap.awaitForObserverEvents(obs, i, 10000 /* timeout */);
+            ArpMergedMap.awaitForObserverEvents(obs, mapSize + i,
+                                                5000 /* timeout */);
             long end = System.nanoTime();
             latencies.add(end-start);
         }
