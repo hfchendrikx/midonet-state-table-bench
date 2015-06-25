@@ -535,11 +535,11 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
 
     protected void computeStats(List<Long> latencies) {
         results.put("Number of latencies: ", latencies.size());
-        results.put("Avg. Latency in ms", StatUtils.mean(latencies));
+        results.put("Avg. Latency in ms", StatUtils.mean(latencies) / 1000000d);
         results.put("Std. deviation of latency in ms",
-                    StatUtils.standardDeviation(latencies));
+                    StatUtils.standardDeviation(latencies) / 1000000d);
         results.put("90% percentile of latency in ms",
-                    StatUtils.percentile(latencies, 0.9f));
+                    StatUtils.percentile(latencies, 0.9d) / 1000000l);
     }
 
     protected void printResults(Logger log) {

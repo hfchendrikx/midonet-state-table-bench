@@ -53,11 +53,11 @@ public class LatencyBench extends MapSetBenchmark {
         TestObserver obs = ArpMergedMap.arpMapObserver(arpMergedMap);
 
         for (int i = 0; i < opCount; i++) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             IPv4Addr ip = randomExistingIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
             ArpMergedMap.awaitForObserverEvents(obs, i, 10000 /* timeout */);
-            long end = System.currentTimeMillis();
+            long end = System.nanoTime();
             latencies.add(end-start);
         }
         return latencies;
@@ -70,11 +70,11 @@ public class LatencyBench extends MapSetBenchmark {
         arpTable.addWatcher(arpWatcher);
 
         for (int i = 0; i < opCount; i++) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             IPv4Addr ip = randomExistingIP();
             arpTable.put(ip, randomArpEntry());
             arpWatcher.waitForResult(0 /* wait until notified */);
-            long end = System.currentTimeMillis();
+            long end = System.nanoTime();
             latencies.add(end-start);
         }
         return latencies;
@@ -87,11 +87,11 @@ public class LatencyBench extends MapSetBenchmark {
         macTable.addWatcher(macWatcher);
 
         for (int i = 0; i < opCount; i++) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             MAC mac = randomExistingMAC();
             macTable.put(mac, UUID.randomUUID());
             macWatcher.waitForResult(0 /* wait until notified */);
-            long end = System.currentTimeMillis();
+            long end = System.nanoTime();
             latencies.add(end - start);
         }
         return latencies;
@@ -105,7 +105,7 @@ public class LatencyBench extends MapSetBenchmark {
         routeSet.addWatcher(routeWatcher);
 
         for (int i = 0; i < opCount; i++) {
-            long start = System.currentTimeMillis();
+            long start = System.nanoTime();
             if (rnd.nextInt(2) == 0) {
                 Route route = removeRndRoute();
                 routeSet.remove(route);
@@ -116,7 +116,7 @@ public class LatencyBench extends MapSetBenchmark {
                 routes.add(route);
             }
             routeWatcher.waitForResult(0 /* wait until notified */);
-            long end = System.currentTimeMillis();
+            long end = System.nanoTime();
             latencies.add(end - start);
         }
         return latencies;

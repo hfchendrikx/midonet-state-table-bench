@@ -184,7 +184,6 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
     : ConsumerConnector = {
         val consProps = new Properties
         consProps.put("zookeeper.connect", config.zkHosts)
-        consProps.put("bootstrap.servers", config.brokers)
         consProps.put("group.id", "group-" + owner)
         // Configure the consumer such that it can read all messages in
         // the topic (also those published before subscribing to the topic).
@@ -203,9 +202,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
         prodProps.put("bootstrap.servers", config.brokers)
         /* The number of acks the producer requires the broker to have received
            from the replicas before considering a request complete */
-        prodProps.put("request.required.acks", "all")
-        prodProps.put("min.insync.replicas",
-                      computeMajority(config.replicationFactor).toString)
+        prodProps.put("acks", "all")
         prodProps.put("key.serializer", classOf[StringSerializer].getName)
         prodProps.put("value.serializer",
                       kafkaIO.messageEncoder.getClass.getName)

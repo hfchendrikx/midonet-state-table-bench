@@ -36,10 +36,13 @@ public class StatUtils {
         return Double.valueOf(oneDecForm.format(stdDev));
     }
 
-    public static long percentile(List<Long> values, float percentile) {
+    public static long percentile(List<Long> values, double percentile) {
         Collections.sort(values);
 
-        int index = (int) Math.floor(((float) values.size()) * percentile);
+        int index = (int) Math.floor(((double) values.size()) * percentile);
+        System.out.println(percentile + " percentile index is: " + index +
+                           " for " + values.size() + " values");
+
         if (values.size() > index) {
             return values.get(index);
         } else {
