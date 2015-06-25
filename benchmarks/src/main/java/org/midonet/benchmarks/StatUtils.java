@@ -39,13 +39,7 @@ public class StatUtils {
 
     public static long percentile(List<Long> values, double percentile) {
         Collections.sort(values);
-
-        Iterator<Long> it = values.iterator();
-        while(it.hasNext()) { System.out.println("latency: " + it.next()); }
-
         int index = (int) Math.floor(((double) values.size()) * percentile);
-        System.out.println(percentile + " percentile index is: " + index +
-                           " for " + values.size() + " values");
 
         if (values.size() > index) {
             return values.get(index);

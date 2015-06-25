@@ -120,8 +120,6 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
         try {
             while (consumerIterator.hasNext()) {
                 val msg = consumerIterator.next
-                System.out.println(System.currentTimeMillis() + ": consuming: " +
-                                   msg.key());
                 inputSubj onNext msg.message
             }
         } catch {
@@ -164,8 +162,6 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
                 new ProducerRecord[String, Opinion](mapId.toString /*topic*/,
                                                     msgKey /*key*/,
                                                     opinion /*value*/)
-            System.out.println(System.currentTimeMillis() + ": producing: " +
-                               msgKey);
             producer.send(msg, sendCallBack)
         }
     }
