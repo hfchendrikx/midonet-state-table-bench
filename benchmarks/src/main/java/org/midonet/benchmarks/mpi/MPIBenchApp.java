@@ -123,8 +123,7 @@ public class MPIBenchApp {
     protected final MpiModels.Mpi mpiProto;
     protected final MpiModels.MpiHost mpiHostProto;
 
-    protected MPIBenchApp(int mpiSize, int mpiRank, String mpiHosts)
-        throws MPIException, ConfigException {
+    protected MPIBenchApp(int mpiSize, int mpiRank, String mpiHosts) {
         this.mpiSize = mpiSize;
         this.mpiRank = mpiRank;
         this.mpiRoot = 0;

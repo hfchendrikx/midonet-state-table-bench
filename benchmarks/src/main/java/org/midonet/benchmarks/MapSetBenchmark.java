@@ -39,7 +39,7 @@ import java.util.*;
 public abstract class MapSetBenchmark { // extends MPIBenchApp {
 
     private static final Logger log =
-        LoggerFactory.getLogger(MapSetBenchmark.class);
+            LoggerFactory.getLogger(MapSetBenchmark.class);
 
     // When populating a table, we wait until dataSize * FILL_RATIO
     // entries have been inserted in the table before proceeding to the
@@ -57,6 +57,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         ROUTING_TABLE,
         ARP_MERGED_MAP
     }
+
     protected StorageType storageType;
     protected int dataSize;
 
@@ -72,7 +73,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
 
     public MapSetBenchmark(StorageType storageType, int dataSize,
                            ZkClient zkClient)
-        throws Exception {
+            throws Exception {
 
         //super(MPI.COMM_WORLD.getSize(), MPI.COMM_WORLD.getRank(),
         //      mpiHosts);
@@ -84,10 +85,10 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         //this.serializer = injector.getInstance(Serializer.class);
         //ZkConnection zkConn = injector.getInstance(ZkConnection.class);
         //MidonetBackendConfig config =
-         //   injector.getInstance(MidonetBackendConfig.class);
+        //   injector.getInstance(MidonetBackendConfig.class);
         //ZkDirectory zkDir =
         //    new ZkDirectory(zkConn, config.rootKey() + "/maps-sets",
-                            //null /* ACL */, new TryCatchReactor("Zookeeper", 1));
+        //null /* ACL */, new TryCatchReactor("Zookeeper", 1));
 
         //if (isMpiRoot()) {
         //    prepareZkPaths(zkDir, zkConn, config.rootKey(), storageType);
@@ -125,7 +126,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
                 return serializer.deserialize(str.getBytes(), Route.class);
             } catch (SerializationException e) {
                 log.error("Could not deserialize route {}, exception: {}",
-                          str, e);
+                        str, e);
                 return null;
             }
         }
@@ -184,7 +185,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     protected static class ReplicatedMapWatcher<K, V>
-        implements ReplicatedMap.Watcher<K, V> {
+            implements ReplicatedMap.Watcher<K, V> {
 
         long rcvTime;
         private boolean updateRcvd = false;
@@ -196,6 +197,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
                 notify();
             }
         }
+
         protected void waitForResult(long timeout) throws InterruptedException {
             synchronized (this) {
                 while (!updateRcvd) {
@@ -211,7 +213,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     protected static class ReplicatedSetWatcher<Route>
-        implements ReplicatedSet.Watcher<Route> {
+            implements ReplicatedSet.Watcher<Route> {
 
         long rcvTime;
         private boolean updateRcvd = false;
@@ -237,14 +239,14 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     //TODO: Do this properly
     protected static String getMpiHosts(String configFile) {
         Config config =
-            MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+                MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
         return config.getString("mpi.mpi_hosts");
     }
 
     //TODO: Do this properly
     protected static int getThreadsPerHost(String configFile) {
         Config config =
-            MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+                MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
         return config.getInt("benchmarks.threads_per_host");
     }
 
@@ -253,11 +255,11 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
             @Override
             protected void configure() {
                 Config config =
-                    MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
+                        MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
                 install(new MidolmanConfigModule(config));
                 install(new MidonetBackendModule(config));
                 install(new ZookeeperConnectionModule(
-                    ZookeeperConnectionWatcher.class));
+                        ZookeeperConnectionWatcher.class));
                 install(new LegacyClusterModule());
                 install(new SerializationModule());
             }
@@ -281,43 +283,46 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
                     absPath.append("/" + path);
                     if (zk.exists(absPath.toString(), false /* watch */) == null) {
                         zkConn.getZooKeeper()
-                            .create(absPath.toString(), new byte[0],
-                                    ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                                    CreateMode.PERSISTENT);
+                                .create(absPath.toString(), new byte[0],
+                                        ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                                        CreateMode.PERSISTENT);
                     }
                 }
             }
         } catch (Exception e) {
             log.error("Exception was caught when creating the Zookeeper"
-                      + " base path", e);
+                    + " base path", e);
         }
 
         Set<String> children = new HashSet<>();
         try {
             children =
-                zkDir.getChildren("", new Directory.DefaultTypedWatcher());
+                    zkDir.getChildren("", new Directory.DefaultTypedWatcher());
         } catch (Exception e) {
             log.error("Impossible to obtain map/set entries", e);
         }
 
         log.info("Deleting left-over children, count {}", children.size());
         // Delete any left-over children
-        for (String child: children) {
+        for (String child : children) {
             // Children are ephemeral nodes so it can happen that some
             // get deleted in the meantime. We just ignore such cases.
-            try { zkDir.delete("/" + child); } catch (Exception e) {}
+            try {
+                zkDir.delete("/" + child);
+            } catch (Exception e) {
+            }
         }
 
         try {
             if (storageType == StorageType.ROUTING_TABLE) {
                 zkConn.getZooKeeper()
-                    .create(basePath + "/write_version", "-1".getBytes(),
-                            ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                            CreateMode.PERSISTENT);
+                        .create(basePath + "/write_version", "-1".getBytes(),
+                                ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                                CreateMode.PERSISTENT);
             }
         } catch (Exception e) {
             log.error("Impossible to create the version directory "
-                      + "needed for routes", e);
+                    + "needed for routes", e);
         }
         log.info("***ZK maps/sets path: {}", zkDir.getPath());
     }
@@ -329,7 +334,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     protected void populateTable() throws InterruptedException,
-                                          SerializationException {
+            SerializationException {
         switch (storageType) {
             case ARP_TABLE:
                 populateArpTable();
@@ -347,14 +352,14 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     private void waitForCompleteArpTable(
-        ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher)
-        throws InterruptedException {
+            ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher)
+            throws InterruptedException {
         int size;
         do {
             arpWatcher.waitForResult(0 /* wait until notified */);
             size = arpTable.getMap().size();
-        // We don't necessarily receive all updates so wait only until 90%
-        // of the expected size is reached.
+            // We don't necessarily receive all updates so wait only until 90%
+            // of the expected size is reached.
         } while (size < (FILL_RATIO * dataSize));
     }
 
@@ -363,7 +368,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         long start = System.currentTimeMillis();
 
         TestObserver obs = ArpMergedMap.arpMapObserver(arpMergedMap);
-        for (int i=0; i < dataSize; i++) {
+        for (int i = 0; i < dataSize; i++) {
             IPv4Addr ip = randomIP();
             arpMergedMap.putOpinion(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
@@ -376,18 +381,18 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
             log.info("Population completed in {} ms", duration);
         } else {
             log.info("Only populated arp merged map with: {} entries in "
-                     + "{} ms", arpMergedMap.size(), duration);
+                    + "{} ms", arpMergedMap.size(), duration);
         }
     }
 
     protected void populateArpTable() throws InterruptedException {
         ReplicatedMapWatcher<IPv4Addr, ArpCacheEntry> arpWatcher =
-            new ReplicatedMapWatcher<>();
+                new ReplicatedMapWatcher<>();
         arpTable.addWatcher(arpWatcher);
 
         log.info("Populating ARP Table with {} entries", dataSize);
         long start = System.currentTimeMillis();
-        for (int i=0; i < dataSize; i++) {
+        for (int i = 0; i < dataSize; i++) {
             IPv4Addr ip = randomIP();
             arpTable.put(ip, randomArpEntry());
             arpTableKeys.put(i, ip);
@@ -395,7 +400,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         waitForCompleteArpTable(arpWatcher);
         arpTable.removeWatcher(arpWatcher);
         long end = System.currentTimeMillis();
-        log.info("Population completed in {} ms", (end-start));
+        log.info("Population completed in {} ms", (end - start));
     }
 
     private void initMacTable(ZkDirectory zkDir) {
@@ -405,24 +410,24 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     private void waitForCompleteMacTable(
-        ReplicatedMapWatcher<MAC, UUID> macWatcher) throws InterruptedException {
+            ReplicatedMapWatcher<MAC, UUID> macWatcher) throws InterruptedException {
         int size;
         do {
             macWatcher.waitForResult(0 /* wait until notified */);
             size = macTable.getMap().size();
-        // We don't necessarily receive all updates so wait only until 90%
-        // of the expected size is reached.
+            // We don't necessarily receive all updates so wait only until 90%
+            // of the expected size is reached.
         } while (size < (FILL_RATIO * dataSize));
     }
 
     protected void populateMacTable() throws InterruptedException {
         ReplicatedMapWatcher<MAC, UUID> macWatcher =
-            new ReplicatedMapWatcher<>();
+                new ReplicatedMapWatcher<>();
         macTable.addWatcher(macWatcher);
 
         log.info("Populating MAC Table with {} entries", dataSize);
         long start = System.currentTimeMillis();
-        for (int i=0; i < dataSize; i++) {
+        for (int i = 0; i < dataSize; i++) {
             MAC mac = MAC.random();
             macTable.put(mac, UUID.randomUUID());
             macTableKeys.put(i, mac);
@@ -430,7 +435,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         waitForCompleteMacTable(macWatcher);
         macTable.removeWatcher(macWatcher);
         long end = System.currentTimeMillis();
-        log.info("Population completed in {} ms", (end-start));
+        log.info("Population completed in {} ms", (end - start));
     }
 
     private void initArpMergedMap(ZkClient zkClient) {
@@ -451,25 +456,25 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
     }
 
     private void waitForCompleteRouteSet(ReplicatedSetWatcher routeWatcher)
-        throws InterruptedException {
+            throws InterruptedException {
         int size;
         do {
             routeWatcher.waitForResult(0 /* wait until notified */);
             size = routeSet.getStrings().size();
-        // We don't necessarily receive all updates so wait only until 90%
-        // of the expected size is reached.
+            // We don't necessarily receive all updates so wait only until 90%
+            // of the expected size is reached.
         } while (size < (FILL_RATIO * dataSize));
     }
 
     protected void populateRouteSet()
-        throws InterruptedException, SerializationException {
+            throws InterruptedException, SerializationException {
 
         ReplicatedSetWatcher routeWatcher = new ReplicatedSetWatcher<>();
         routeSet.addWatcher(routeWatcher);
 
         log.info("Populating Route Set with {} entries", dataSize);
         long start = System.currentTimeMillis();
-        for (int i=0; i < dataSize; i++) {
+        for (int i = 0; i < dataSize; i++) {
             Route route = randomRoute();
             routes.add(route);
             routeSet.add(route);
@@ -477,7 +482,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         waitForCompleteRouteSet(routeWatcher);
         routeSet.removeWatcher(routeWatcher);
         long end = System.currentTimeMillis();
-        log.info("Population completed in {} ms", (end-start));
+        log.info("Population completed in {} ms", (end - start));
     }
 
     protected IPv4Addr randomExistingIP() {
@@ -504,22 +509,22 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         File config = new File(configFile);
         if (!config.exists())
             throw new IllegalArgumentException("Configuration file: " +
-                                               configFile + " does not exist");
+                    configFile + " does not exist");
     }
 
     protected void computeStats(List<Long> latencies) {
         results.put("Number of latencies: ", latencies.size());
         results.put("Avg. Latency in ms", StatUtils.mean(latencies) / 1000000d);
         results.put("Std. deviation of latency in ms",
-                    StatUtils.standardDeviation(latencies) / 1000000d);
+                StatUtils.standardDeviation(latencies) / 1000000d);
         results.put("90% percentile of latency in ms",
-                    StatUtils.percentile(latencies, 0.9d) / 1000000l);
+                StatUtils.percentile(latencies, 0.9d) / 1000000l);
     }
 
     protected void printResults(Logger log) {
         System.out.println("*** Results for: " + storageType + " of size: " +
-                           dataSize + " :");
-        for (String key: results.keySet())
+                dataSize + " :");
+        for (String key : results.keySet())
             System.out.println("\t" + key + " " + results.get(key));
     }
 
@@ -538,16 +543,18 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
         int nextHopGtw = 0; //IPv4Addr.random().toInt();
 
         return new Route(srcAddr, 24 /* srcNetLength */, dstAddr,
-                         24 /* destNetLength */, Route.NextHop.PORT,
-                         UUID.randomUUID() /* port */, nextHopGtw, 1 /* weight */,
-                         "" /* attribue */, UUID.randomUUID() /* routerId */);
+                24 /* destNetLength */, Route.NextHop.PORT,
+                UUID.randomUUID() /* port */, nextHopGtw, 1 /* weight */,
+                "" /* attribue */, UUID.randomUUID() /* routerId */);
     }
 
     public static class ZookeeperReactorProvider implements Provider<Reactor> {
         private final static int nOfThreads =
-            getThreadsPerHost(System.getProperty("midobench.config"));
+                getThreadsPerHost(System.getProperty("midobench.config"));
+
         public ZookeeperReactorProvider() {
         }
+
         public Reactor get() {
             return new TryCatchReactor("zookeeper", Integer.valueOf(nOfThreads));
         }
@@ -587,7 +594,7 @@ public abstract class MapSetBenchmark { // extends MPIBenchApp {
 
         protected void bindReactor() {
             this.bind(Reactor.class).annotatedWith(Names.named("directoryReactor"))
-                .toProvider(ZookeeperReactorProvider.class).asEagerSingleton();
+                    .toProvider(ZookeeperReactorProvider.class).asEagerSingleton();
         }
     }
 
