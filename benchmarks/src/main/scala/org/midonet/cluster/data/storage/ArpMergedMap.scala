@@ -3,20 +3,17 @@ package org.midonet.cluster.data.storage
 import java.util
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.duration
-import scala.concurrent.duration.FiniteDuration
-
 import kafka.serializer.{Decoder, StringDecoder}
 import kafka.utils.VerifiableProperties
 import org.I0Itec.zkclient.ZkClient
 import org.apache.kafka.common.serialization.{Serializer, StringSerializer}
-import org.slf4j.{LoggerFactory, Logger}
-import rx.Observer
-import rx.observers.TestObserver
-
 import org.midonet.midolman.state.ArpCacheEntry
 import org.midonet.packets.IPv4Addr
 import org.midonet.util.reactivex.AwaitableObserver
+import rx.observers.TestObserver
+
+import scala.concurrent.duration
+import scala.concurrent.duration.FiniteDuration
 
 object ArpMergedMap {
     type ArpObs = TestObserver[(IPv4Addr, ArpCacheEntry)]

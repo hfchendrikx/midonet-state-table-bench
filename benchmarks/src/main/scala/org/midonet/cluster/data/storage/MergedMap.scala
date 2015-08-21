@@ -19,16 +19,15 @@ package org.midonet.cluster.data.storage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.collection.concurrent.TrieMap
-import scala.collection.mutable
-
+import org.midonet.util.functors.{makeAction0, makeAction1}
 import org.slf4j.LoggerFactory
 import rx.Observable.OnSubscribe
 import rx.schedulers.Schedulers
 import rx.subjects.PublishSubject
 import rx.{Observable, Observer, Subscriber}
 
-import org.midonet.util.functors.{makeAction0, makeAction1}
+import scala.collection.concurrent.TrieMap
+import scala.collection.mutable
 
 /**
  * This trait exposes storage that is to be used with a merged map.

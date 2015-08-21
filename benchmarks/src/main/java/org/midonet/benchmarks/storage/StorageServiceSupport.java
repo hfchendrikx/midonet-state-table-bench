@@ -16,17 +16,16 @@
 
 package org.midonet.benchmarks.storage;
 
-import java.util.List;
-import java.util.UUID;
-
-import rx.Observer;
-import rx.Subscription;
-
 import org.midonet.cluster.EntityIdSetEvent;
 import org.midonet.cluster.data.Bridge;
 import org.midonet.cluster.data.Port;
 import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
+import rx.Observer;
+import rx.Subscription;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Provides an interface for common storage-related methods

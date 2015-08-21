@@ -19,12 +19,8 @@ package org.midonet.cluster.data.storage
 import java.util.Properties
 import java.util.concurrent.Executors
 
-import scala.collection.JavaConverters._
-import scala.util.Random
-import scala.util.control.NonFatal
-import com.typesafe.config.{Config, ConfigFactory}
-
 import com.google.common.annotations.VisibleForTesting
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import kafka.admin.AdminUtils
 import kafka.consumer.{ConsumerConfig, ConsumerIterator}
@@ -34,11 +30,13 @@ import kafka.utils.ZKStringSerializer
 import org.I0Itec.zkclient.ZkClient
 import org.apache.kafka.clients.producer.{Callback, KafkaProducer, ProducerRecord, RecordMetadata}
 import org.apache.kafka.common.serialization.{Serializer, StringSerializer}
+import org.midonet.util.functors.makeRunnable
 import org.slf4j.LoggerFactory
 import rx.Observer
 import rx.subjects.PublishSubject
 
-import org.midonet.util.functors.makeRunnable
+import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 
 trait KafkaSerialization[K, V >: Null <: AnyRef] {
     /**

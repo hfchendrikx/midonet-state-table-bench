@@ -1,27 +1,17 @@
 package org.midonet.benchmarks;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import com.google.inject.Injector;
-
+import mpi.MPI;
+import mpi.MPIException;
 import org.I0Itec.zkclient.ZkClient;
+import org.midonet.midolman.layer3.Route;
+import org.midonet.midolman.state.ArpCacheEntry;
+import org.midonet.packets.IPv4Addr;
+import org.midonet.packets.MAC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.midonet.midolman.layer3.Route;
-import org.midonet.midolman.serialization.SerializationException;
-import org.midonet.midolman.state.ArpCacheEntry;
-import org.midonet.midolman.state.ReplicatedSet;
-import org.midonet.packets.IPv4Addr;
-import org.midonet.packets.MAC;
-
-import mpi.MPI;
-import mpi.MPIException;
+import java.util.*;
 
 /**
  * This class implements the Churn benchmark which consists in measuring the

@@ -2,6 +2,7 @@ apply plugin: 'java'
 apply plugin: 'scala'
 apply plugin: 'protobuf'
 apply plugin: 'application'
+//apply plugin: "dependencyAnalysis"
 
 evaluationDependsOn(':openmpi')
 def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +

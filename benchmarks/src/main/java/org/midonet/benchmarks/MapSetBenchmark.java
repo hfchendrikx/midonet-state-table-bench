@@ -1,35 +1,13 @@
 package org.midonet.benchmarks;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-
-import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.google.inject.Key;
-import com.google.inject.PrivateModule;
-import com.google.inject.Provider;
+import com.google.inject.*;
 import com.google.inject.name.Names;
 import com.typesafe.config.Config;
-
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.observers.TestObserver;
-
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.cluster.storage.MidonetBackendConfig;
@@ -43,21 +21,17 @@ import org.midonet.midolman.guice.config.MidolmanConfigModule;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.serialization.Serializer;
-import org.midonet.midolman.state.ArpCacheEntry;
-import org.midonet.midolman.state.ArpTable;
-import org.midonet.midolman.state.Directory;
-import org.midonet.midolman.state.DirectoryCallback;
-import org.midonet.midolman.state.MacPortMap;
-import org.midonet.midolman.state.ReplicatedMap;
-import org.midonet.midolman.state.ReplicatedSet;
-import org.midonet.midolman.state.ZkConnection;
-import org.midonet.midolman.state.ZkConnectionAwareWatcher;
-import org.midonet.midolman.state.ZkDirectory;
-import org.midonet.midolman.state.ZookeeperConnectionWatcher;
+import org.midonet.midolman.state.*;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
 import org.midonet.util.eventloop.Reactor;
 import org.midonet.util.eventloop.TryCatchReactor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.observers.TestObserver;
+
+import java.io.File;
+import java.util.*;
 
 /**
  * This is the super-class for various benchmarks on replicated maps/sets.

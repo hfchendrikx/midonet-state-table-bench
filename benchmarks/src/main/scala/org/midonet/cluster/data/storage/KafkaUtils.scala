@@ -1,10 +1,8 @@
 package org.midonet.cluster.data.storage
 
-import java.io.File
 import java.util.Properties
 
 import kafka.server.{KafkaConfig, KafkaServer}
-import org.I0Itec.zkclient.ZkClient
 import org.apache.curator.test.TestingServer
 
 object KafkaUtils {

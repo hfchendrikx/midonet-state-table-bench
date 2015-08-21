@@ -16,18 +16,6 @@
 
 package org.midonet.benchmarks.storage;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
-
 import org.midonet.cluster.EntityIdSetEvent;
 import org.midonet.cluster.data.Bridge;
 import org.midonet.cluster.data.Port;
@@ -36,16 +24,25 @@ import org.midonet.cluster.data.ports.BridgePort;
 import org.midonet.cluster.data.ports.RouterPort;
 import org.midonet.cluster.data.storage.ReferenceConflictException;
 import org.midonet.cluster.data.storage.StorageWithOwnership;
-import org.midonet.cluster.data.storage.ZookeeperObjectMapper;
 import org.midonet.cluster.models.Commons;
 import org.midonet.cluster.models.Topology;
 import org.midonet.cluster.util.IPAddressUtil;
 import org.midonet.cluster.util.UUIDUtil;
 import org.midonet.packets.MAC;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+import rx.Observer;
+import rx.Subscription;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 import scala.collection.JavaConversions;
 import scala.concurrent.Await;
 import scala.concurrent.duration.Duration;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * DataClient-based storage service for org.midonet.benchmarks

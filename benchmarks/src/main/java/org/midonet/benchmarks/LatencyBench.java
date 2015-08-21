@@ -1,15 +1,6 @@
 package org.midonet.benchmarks;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
-
 import org.I0Itec.zkclient.ZkClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import rx.observers.TestObserver;
-
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.midolman.layer3.Route;
@@ -17,8 +8,14 @@ import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.packets.MAC;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.observers.TestObserver;
 import scala.Tuple2;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * This class implements the LatencyBench described in the following document:

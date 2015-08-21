@@ -16,6 +16,14 @@
 
 package org.midonet.benchmarks.mpi;
 
+import mpi.MPI;
+import mpi.MPIException;
+import org.apache.commons.cli.*;
+import org.midonet.benchmarks.MpiModels;
+import org.midonet.benchmarks.configuration.ConfigException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,21 +32,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
-import mpi.MPI;
-import mpi.MPIException;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.midonet.benchmarks.MpiModels;
-import org.midonet.benchmarks.configuration.MpiConfig;
-import org.midonet.benchmarks.configuration.ConfigException;
 
 import static java.net.InetAddress.getLocalHost;
 

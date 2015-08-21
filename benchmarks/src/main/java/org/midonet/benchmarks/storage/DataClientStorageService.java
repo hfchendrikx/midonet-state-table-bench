@@ -16,15 +16,6 @@
 
 package org.midonet.benchmarks.storage;
 
-import java.util.List;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Observer;
-import rx.Subscription;
-
 import org.midonet.cluster.DataClient;
 import org.midonet.cluster.EntityIdSetEvent;
 import org.midonet.cluster.EntityIdSetMonitor;
@@ -38,6 +29,14 @@ import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.StateAccessException;
 import org.midonet.midolman.state.ZookeeperConnectionWatcher;
 import org.midonet.midolman.state.zkManagers.BridgeZkManager.BridgeConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import rx.Observable;
+import rx.Observer;
+import rx.Subscription;
+
+import java.util.List;
+import java.util.UUID;
 
 
 /**
