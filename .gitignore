@@ -13,4 +13,6 @@ mpitest/build/
 midolman.log.dir_IS_UNDEFINED*.log
 benchmark.bin
 benchmark.out
-
+*~
+build/
+gradle-app.setting

@@ -32,6 +32,8 @@ compileScala {
 }
 
 jar {
+ 
+    
     manifest {
         attributes 'Implementation-Title': 'Topology Benchmark Applications'
     }
@@ -40,11 +42,11 @@ jar {
         exclude "META-INF/*.DSA"
         exclude "META-INF/*.RSA"
     }
-    from {configurations.runtime.collect {it.isDirectory()? it: zipTree(it)}} {
-        exclude "META-INF/*.SF"
-        exclude "META-INF/*.DSA"
-        exclude "META-INF/*.RSA"
-    }
+    //from {configurations.runtime.collect {it.isDirectory()? it: zipTree(it)}} {
+    //    exclude "META-INF/*.SF"
+    //    exclude "META-INF/*.DSA"
+    //    exclude "META-INF/*.RSA"
+    //}
 }
 
 dependencies {

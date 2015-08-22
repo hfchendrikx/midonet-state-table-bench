@@ -87,7 +87,7 @@ public class NewLatencyBench extends MPIBenchApp {
             //You my friend will have to be a reader
             System.out.println("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
             node = new ReaderNode();
-        }
+        } //TODO: Case for unused nodes
 
         /**
          * Start of testing
