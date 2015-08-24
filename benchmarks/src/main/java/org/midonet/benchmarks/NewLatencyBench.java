@@ -3,12 +3,14 @@ package org.midonet.benchmarks;
 import com.typesafe.config.Config;
 import mpi.MPI;
 import mpi.MPIException;
-import org.midonet.benchmarks.latencyNodes.ReaderNode;
-import org.midonet.benchmarks.latencyNodes.TestNode;
-import org.midonet.benchmarks.latencyNodes.WriterNode;
+import org.midonet.benchmarks.latencyNodes.*;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
+import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
+import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.conf.MidoNodeConfigurator;
+import org.midonet.midolman.state.ArpCacheEntry;
+import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.I0Itec.zkclient.ZkClient;
@@ -39,6 +41,7 @@ public class NewLatencyBench extends MPIBenchApp {
             String mapBaseName
     ) throws NotEnoughNodesAvailableException {
         super(worldSize, worldRank, "");
+
 
         if (mapBaseName.equals("")) {
             if (this.isMpiRoot()) {
@@ -72,37 +75,82 @@ public class NewLatencyBench extends MPIBenchApp {
             throw new NotEnoughNodesAvailableException();
         }
 
-        //Nodes are first divided into which map they correspond to and
-        //then if they subdivided in readers/writers
-        int myMapId = worldRank / (writersPerMap + readersPerMap);
-        String myMapName = mapBaseName + "_" + myMapId;
-        int mapRank = worldRank % (writersPerMap + readersPerMap);
+        IPv4Addr[] ipAddresses = ArpMergedMapTest.distributeRandomIPSet(1000, worldRank);
 
         TestNode node;
-        if (mapRank < writersPerMap) {
-            //You my friend are a writer
-            System.out.println("Starting writer on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
-            node = new WriterNode();
+        if (worldRank < numberOfReaderNodesNeeded + numberOfWriterNodesNeeded) {
+
+
+            //Nodes are first divided into which map they correspond to and
+            //then if they subdivided in readers/writers
+            int myMapId = worldRank / (writersPerMap + readersPerMap);
+            String myMapName = mapBaseName + "_" + myMapId;
+            int mapRank = worldRank % (writersPerMap + readersPerMap);
+            boolean imTheWriter = mapRank == 0;
+
+            zookeeperClient = KafkaBus.zookeeperClient();
+
+
+            /*
+             * Let all the writers setup the map first so that they can create it, and
+             * after that is done the readers can open up a connection to it
+             * (The kafka topic needs to be created by only one node)
+             */
+            MergedMap<IPv4Addr, ArpCacheEntry> theMap = null;
+            if (imTheWriter) {
+                theMap = ArpMergedMap.newArpMap(myMapName, "node" + worldRank, zookeeperClient);
+            }
+            try { this.barrier(); } catch (MPIException e) {
+                log.error("Error during waiting on barrier after node init", e);
+            }
+            if (!imTheWriter) {
+                theMap = ArpMergedMap.newArpMap(myMapName, "node" + worldRank, zookeeperClient);
+            }
+
+            ArpMergedMapTest testReaderWriter = new ArpMergedMapTest(theMap, ipAddresses, random);
+
+            if (imTheWriter) {
+                //You my friend are a writer
+                System.out.println("Starting writer on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
+                node = new WriterNode(testReaderWriter);
+            } else {
+                //You my friend will have to be a reader
+                System.out.println("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
+                node = new ReaderNode(testReaderWriter);
+            }
+
         } else {
-            //You my friend will have to be a reader
-            System.out.println("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
-            node = new ReaderNode();
-        } //TODO: Case for unused nodes
+            System.out.println("Node on " + this.mpiHostName + " will not participate in this benchark (" + worldRank + "," + worldSize + ")");
+            node = new DummyNode();
+
+            /**
+             * TODO: Put the dummy nodes in another MPI group, so they dont have to do all the barriers
+             */
+            log.info("Awaiting init of other nodes");
+            try { this.barrier(); } catch (MPIException e) {
+                log.error("Error during waiting on barrier after node init", e);
+            }
+        }
+
 
         /**
          * Start of testing
          */
 
+        log.info("Setting up benchmark");
         node.setup();
 
+
+        log.info("Awaiting setup of other nodes");
         try {
             this.barrier();
         } catch (MPIException e) {
             log.error("Error during waiting on barrier after node setup", e);
         }
 
-        node.run();
+        log.info("Starting main part of benchmark");
 
+        node.run();
         System.out.println("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
     }
 
@@ -128,9 +176,8 @@ public class NewLatencyBench extends MPIBenchApp {
             return;
         }
 
-        //String configFile = System.getProperty("state-table-bench.config");
-        //Config config = MidoNodeConfigurator.forAgents(configFile).localOnlyConfig();
-        //log.info("Starting experiment with config file {}", configFile);
+        //
+
         log.info("Starting size: " + worldSize + ", rank: " + worldRank);
 
         /**
@@ -141,8 +188,8 @@ public class NewLatencyBench extends MPIBenchApp {
             NewLatencyBench bench = new NewLatencyBench(
                     worldSize,
                     worldRank,
-                    null,//KafkaBus.zookeeperClient(),
-                    2,
+                    null,
+                    1,
                     1000,
                     10,
                     1,
@@ -161,5 +208,10 @@ public class NewLatencyBench extends MPIBenchApp {
         } catch (Exception e) {
             log.error("Impossible to finalize MPI", e);
         }
+
+        log.info("Done");
+
+        //Exit code is needed to terminate the mpirun command
+        System.exit(0);
     }
 }
