@@ -6,5 +6,5 @@ package org.midonet.benchmarks.latencyNodes;
 public interface TestNode {
     void setup();
     void run();
-
+    void postProcessResults();
 }

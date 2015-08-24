@@ -14,4 +14,8 @@ public class DummyNode implements TestNode {
     public void run() {
 
     }
+
+    public void postProcessResults() {
+
+    }
 }

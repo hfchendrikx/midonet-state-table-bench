@@ -26,4 +26,10 @@ public class WriterNode implements TestNode {
             this.writer.writeEntry();
         }
     }
+
+    public void postProcessResults() {
+
+    }
+
+
 }

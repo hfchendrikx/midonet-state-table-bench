@@ -140,7 +140,6 @@ public class NewLatencyBench extends MPIBenchApp {
         log.info("Setting up benchmark");
         node.setup();
 
-
         log.info("Awaiting setup of other nodes");
         try {
             this.barrier();
@@ -149,8 +148,17 @@ public class NewLatencyBench extends MPIBenchApp {
         }
 
         log.info("Starting main part of benchmark");
-
         node.run();
+
+        try {
+            this.barrier();
+        } catch (MPIException e) {
+            log.error("Error during waiting on barrier after main part of benchmark", e);
+        }
+
+        node.postProcessResults();
+
+
         System.out.println("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
     }
 
