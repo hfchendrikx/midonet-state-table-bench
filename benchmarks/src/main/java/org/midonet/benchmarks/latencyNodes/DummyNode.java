@@ -15,7 +15,7 @@ public class DummyNode implements TestNode {
 
     }
 
-    public void postProcessResults() {
-
+    public String postProcessResults(Bookkeeper bookkeeper) {
+        return "";
     }
 }

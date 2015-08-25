@@ -1,6 +1,7 @@
 package org.midonet.benchmarks;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.benchmarks.latencyNodes.*;
@@ -15,7 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.I0Itec.zkclient.ZkClient;
 
+import java.io.File;
+import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 public class NewLatencyBench extends MPIBenchApp {
 
@@ -37,8 +41,11 @@ public class NewLatencyBench extends MPIBenchApp {
             int numberOfMaps,
             int writeRate,
             int writeInterval,
+            int warmupWrites,
+            int benchmarkWrites,
             int readersPerMap,
-            String mapBaseName
+            String mapBaseName,
+            Bookkeeper bookkeeper
     ) throws NotEnoughNodesAvailableException {
         super(worldSize, worldRank, "");
 
@@ -67,6 +74,7 @@ public class NewLatencyBench extends MPIBenchApp {
             }
         }
 
+        bookkeeper.setHostname(mpiHostName + '-' + mpiRank);
         int writersPerMap = 1;  //Assume 1 writer per map
         int numberOfReaderNodesNeeded = numberOfMaps * readersPerMap;
         int numberOfWriterNodesNeeded = numberOfMaps * writersPerMap;
@@ -112,11 +120,11 @@ public class NewLatencyBench extends MPIBenchApp {
             if (imTheWriter) {
                 //You my friend are a writer
                 System.out.println("Starting writer on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
-                node = new WriterNode(testReaderWriter);
+                node = new WriterNode(testReaderWriter, writeRate, writeInterval, benchmarkWrites, warmupWrites);
             } else {
                 //You my friend will have to be a reader
                 System.out.println("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
-                node = new ReaderNode(testReaderWriter);
+                node = new ReaderNode(testReaderWriter, benchmarkWrites, warmupWrites);
             }
 
         } else {
@@ -156,7 +164,13 @@ public class NewLatencyBench extends MPIBenchApp {
             log.error("Error during waiting on barrier after main part of benchmark", e);
         }
 
-        node.postProcessResults();
+        node.postProcessResults(bookkeeper);
+
+        try {
+            this.barrier();
+        } catch (MPIException e) {
+            log.error("Error during waiting on barrier after postproccessing of benchmark", e);
+        }
 
 
         System.out.println("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
@@ -191,18 +205,44 @@ public class NewLatencyBench extends MPIBenchApp {
         /**
          * Read configuration file!
          */
+        Config configuration = ConfigFactory.load();
+
+        Bookkeeper bookkeeper = new Bookkeeper(
+                configuration.getString("NewLatencyBench.Bookkeeper.basePath"),
+                "unknownhost",
+                "exp"
+        );
 
         try {
             NewLatencyBench bench = new NewLatencyBench(
                     worldSize,
                     worldRank,
                     null,
-                    1,
-                    1000,
-                    10,
-                    1,
-                    ""
+                    configuration.getInt("NewLatencyBench.numberOfMaps"),
+                    configuration.getInt("NewLatencyBench.writeRate"),
+                    configuration.getInt("NewLatencyBench.writeInterval") * 1000,
+                    configuration.getInt("NewLatencyBench.numberOfWarmupWrites"),
+                    configuration.getInt("NewLatencyBench.benchMarkWrites"),
+                    configuration.getInt("NewLatencyBench.readersPerMap"),
+                    configuration.getString("NewLatencyBench.mapName"),
+                    bookkeeper
+
             );
+
+
+            if (worldRank == 0) {
+                List<String> files = bookkeeper.getPathsToAllLogs("summary");
+                for (String file : files) {
+                    try {
+                        String content = new Scanner(new File(file)).useDelimiter("\\Z").next();
+                        System.out.println(content);
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+
+
         } catch(NotEnoughNodesAvailableException e) {
             if (worldRank == 0) {
                 System.out.println("NOT ENOUGH NODES AVAILABLE FOR REQUESTED TEST CONFIGURATION");
