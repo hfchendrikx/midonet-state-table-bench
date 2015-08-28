@@ -1,1 +1,1 @@
-mpirun -n 4 java -Dzk.hosts=localhost:2181 -Dkafka.hosts=localhost:9092,localhost:9093,localhost:9094 -Dstate-table-bench.config=test.conf -cp ./:benchmarks/build/libs/benchmarks.jar org.midonet.benchmarks.NewLatencyBench
+mpirun -n 4 java -Dzk.hosts=localhost:2181 -Dkafka.hosts=localhost:9092,localhost:9093,localhost:9094 -Dstate-table-bench.config=test.conf -cp ./:benchmarks/build/libs/benchmarks.jar org.midonet.benchmarks.MergedMapTestBench

@@ -9,7 +9,6 @@ import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
-import org.midonet.conf.MidoNodeConfigurator;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
@@ -21,7 +20,20 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
-public class NewLatencyBench extends MPIBenchApp {
+public class MergedMapTestBench extends MPIBenchApp {
+
+    int worldSize;
+    int worldRank;
+    ZkClient zookeeperClient;
+    int numberOfMaps;
+    int writeRate;
+    int writeInterval;
+    int warmupWrites;
+    int benchmarkWrites;
+    int readersPerMap;
+    int tableSize = 1000;
+    String mapBaseName;
+    Bookkeeper bookkeeper;
 
     /**
      *
@@ -34,7 +46,7 @@ public class NewLatencyBench extends MPIBenchApp {
      * @param readersPerMap
      * @throws NotEnoughNodesAvailableException
      */
-    public NewLatencyBench (
+    public MergedMapTestBench(
             int worldSize,
             int worldRank,
             ZkClient zookeeperClient,
@@ -46,32 +58,126 @@ public class NewLatencyBench extends MPIBenchApp {
             int readersPerMap,
             String mapBaseName,
             Bookkeeper bookkeeper
-    ) throws NotEnoughNodesAvailableException {
+    ) {
         super(worldSize, worldRank, "");
+
+        this.worldSize = worldSize;
+        this.worldRank = worldRank;
+        this.zookeeperClient = zookeeperClient;
+        this.numberOfMaps = numberOfMaps;
+        this.writeRate = writeRate;
+        this.writeInterval = writeInterval;
+        this.warmupWrites = warmupWrites;
+        this.benchmarkWrites = benchmarkWrites;
+        this.readersPerMap = readersPerMap;
+        this.mapBaseName = mapBaseName;
+        this.bookkeeper = bookkeeper;
+    }
+
+    public MergedMapTestBench(
+            int worldSize,
+            int worldRank
+    ) {
+        super(worldSize, worldRank, "");
+
+        this.worldSize = worldSize;
+        this.worldRank = worldRank;
+    }
+
+    public void setBookkeeper(Bookkeeper bookkeeper) {
+        this.bookkeeper = bookkeeper;
+    }
+
+    public void configureWithConfig(Config config) {
+        this.numberOfMaps = config.getInt("numberOfMaps");
+        this.writeRate = config.getInt("writeRate");
+        this.writeInterval = config.getInt("writeInterval") * 1000;
+        this.warmupWrites = config.getInt("numberOfWarmupWrites");
+        this.benchmarkWrites = config.getInt("benchMarkWrites");
+        this.readersPerMap = config.getInt("readersPerMap");
+        this.mapBaseName = config.getString("mapName");
+        this.tableSize = config.getInt("tableSize");
+    }
+
+    public void updateConfigurationWithConfig(Config config) {
+        if (config.hasPath("numberOfMaps")) {
+            this.numberOfMaps = config.getInt("numberOfMaps");
+        }
+        if (config.hasPath("writeRate")) {
+            this.writeRate = config.getInt("writeRate");
+        }
+        if (config.hasPath("writeInterval")) {
+            this.writeInterval = config.getInt("writeInterval") * 1000;
+        }
+        if (config.hasPath("numberOfWarmupWrites")) {
+            this.warmupWrites = config.getInt("numberOfWarmupWrites");
+        }
+        if (config.hasPath("benchMarkWrites")) {
+            this.benchmarkWrites = config.getInt("benchMarkWrites");
+        }
+        if (config.hasPath("readersPerMap")) {
+            this.readersPerMap = config.getInt("readersPerMap");
+        }
+        if (config.hasPath("mapName")) {
+            this.mapBaseName = config.getString("mapName");
+        }
+        if (config.hasPath("tableSize")) {
+            this.tableSize = config.getInt("tableSize");
+        }
+    }
+
+    public String suggestedTestTag() {
+        return "MMTB-" +
+                this.numberOfMaps + "w" + //writes
+                this.readersPerMap + "c" + //clients
+                this.writeRate + "ups" + //updates per second
+                this.tableSize + "ts" + //table size
+                this.benchmarkWrites + "x"; //times
+    }
+
+    public String testInformation() {
+        StringBuilder output = new StringBuilder();
+
+        output.append("MergedMapTestBench\n");
+        output.append("NumberOfMaps: " + this.numberOfMaps + "\n");
+        output.append("ReadersPerMap: " + this.readersPerMap + "\n");
+        output.append("WriteRate: " + this.writeRate + " entries/second\n");
+        output.append("tableSize: " + this.tableSize + "\n");
+        output.append("benchmarkWrites: " + this.benchmarkWrites + "\n");
+        output.append("WarmupWrites: " + this.warmupWrites + "\n");
+
+        return output.toString();
+    }
+
+    private void generateAndDistributeMapBaseName() {
+        if (this.isMpiRoot()) {
+            long changingValue = System.currentTimeMillis();
+            try {
+                this.broadcast(new long[]{changingValue}, 1, 0);
+            } catch (MPIException e) {
+                log.error("Error during broadcast of mapBaseName", e);
+            }
+
+            mapBaseName = "auto" + changingValue;
+        } else {
+            long value = 0;
+
+            try {
+                long[] valueArray = this.broadcast(new long[]{}, 1, 0);
+                value = valueArray[0];
+            } catch (MPIException e) {
+                log.error("Error during receive of mapBaseName", e);
+            }
+
+            mapBaseName = "auto" + value;
+        }
+    }
+
+    public void run() throws NotEnoughNodesAvailableException {
 
 
         if (mapBaseName.equals("")) {
-            if (this.isMpiRoot()) {
-                long changingValue = System.currentTimeMillis();
-                try {
-                    this.broadcast(new long[]{changingValue}, 1, 0);
-                } catch (MPIException e) {
-                    log.error("Error during broadcast of mapBaseName", e);
-                }
-
-                mapBaseName = "auto" + changingValue;
-            } else {
-                long value = 0;
-
-                try {
-                    long[] valueArray = this.broadcast(null, 1, 0);
-                    value = valueArray[0];
-                } catch (MPIException e) {
-                    log.error("Error during receive of mapBaseName", e);
-                }
-
-                mapBaseName = "auto" + value;
-            }
+            this.generateAndDistributeMapBaseName();
         }
 
         bookkeeper.setHostname(mpiHostName + '-' + mpiRank);
@@ -83,7 +189,7 @@ public class NewLatencyBench extends MPIBenchApp {
             throw new NotEnoughNodesAvailableException();
         }
 
-        IPv4Addr[] ipAddresses = ArpMergedMapTest.distributeRandomIPSet(1000, worldRank);
+        IPv4Addr[] ipAddresses = ArpMergedMapTest.distributeRandomIPSet(this.tableSize, worldRank);
 
         TestNode node;
         if (worldRank < numberOfReaderNodesNeeded + numberOfWriterNodesNeeded) {
@@ -119,22 +225,22 @@ public class NewLatencyBench extends MPIBenchApp {
 
             if (imTheWriter) {
                 //You my friend are a writer
-                System.out.println("Starting writer on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
+                log.info("Starting writer on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
                 node = new WriterNode(testReaderWriter, writeRate, writeInterval, benchmarkWrites, warmupWrites);
             } else {
                 //You my friend will have to be a reader
-                System.out.println("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
+                log.info("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
                 node = new ReaderNode(testReaderWriter, benchmarkWrites, warmupWrites);
             }
 
         } else {
-            System.out.println("Node on " + this.mpiHostName + " will not participate in this benchark (" + worldRank + "," + worldSize + ")");
+            log.info("Node on " + this.mpiHostName + " will not participate in this benchark (" + worldRank + "," + worldSize + ")");
             node = new DummyNode();
 
             /**
              * TODO: Put the dummy nodes in another MPI group, so they dont have to do all the barriers
              */
-            log.info("Awaiting init of other nodes");
+            log.debug("Awaiting init of other nodes");
             try { this.barrier(); } catch (MPIException e) {
                 log.error("Error during waiting on barrier after node init", e);
             }
@@ -145,17 +251,17 @@ public class NewLatencyBench extends MPIBenchApp {
          * Start of testing
          */
 
-        log.info("Setting up benchmark");
+        log.debug("Setting up benchmark");
         node.setup();
 
-        log.info("Awaiting setup of other nodes");
+        log.debug("Awaiting setup of other nodes");
         try {
             this.barrier();
         } catch (MPIException e) {
             log.error("Error during waiting on barrier after node setup", e);
         }
 
-        log.info("Starting main part of benchmark");
+        log.debug("Starting main part of benchmark");
         node.run();
 
         try {
@@ -173,7 +279,7 @@ public class NewLatencyBench extends MPIBenchApp {
         }
 
 
-        System.out.println("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
+        log.info("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
     }
 
     /**
@@ -183,7 +289,7 @@ public class NewLatencyBench extends MPIBenchApp {
     private static Random random = new Random();
 
     private static final Logger log =
-        LoggerFactory.getLogger(NewLatencyBench.class);
+        LoggerFactory.getLogger(MergedMapTestBench.class);
 
     public static void main(String[] args) {
         int worldSize = -1;
@@ -208,26 +314,21 @@ public class NewLatencyBench extends MPIBenchApp {
         Config configuration = ConfigFactory.load();
 
         Bookkeeper bookkeeper = new Bookkeeper(
-                configuration.getString("NewLatencyBench.Bookkeeper.basePath"),
+                configuration.getString("MergedMapTestBench.Bookkeeper.basePath"),
                 "unknownhost",
                 "exp"
         );
 
         try {
-            NewLatencyBench bench = new NewLatencyBench(
+            MergedMapTestBench bench = new MergedMapTestBench(
                     worldSize,
-                    worldRank,
-                    null,
-                    configuration.getInt("NewLatencyBench.numberOfMaps"),
-                    configuration.getInt("NewLatencyBench.writeRate"),
-                    configuration.getInt("NewLatencyBench.writeInterval") * 1000,
-                    configuration.getInt("NewLatencyBench.numberOfWarmupWrites"),
-                    configuration.getInt("NewLatencyBench.benchMarkWrites"),
-                    configuration.getInt("NewLatencyBench.readersPerMap"),
-                    configuration.getString("NewLatencyBench.mapName"),
-                    bookkeeper
+                    worldRank
 
             );
+            bench.setBookkeeper(bookkeeper);
+            bench.configureWithConfig(configuration.getConfig("MergedMapTestBench"));
+
+            bench.run();
 
 
             if (worldRank == 0) {

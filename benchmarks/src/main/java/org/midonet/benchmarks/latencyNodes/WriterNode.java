@@ -37,6 +37,7 @@ public class WriterNode implements TestNode {
 
     @Override
     public void setup() {
+        this.writer.writeWarmup();
         for (int i=0;i<this.numberOfWarmupWrites;i++) {
             this.writer.writeEntry();
         }
@@ -47,7 +48,7 @@ public class WriterNode implements TestNode {
         long writesPerInterval = Math.round(((this.writesPerSecond / 1000000.0) * this.writeInterval));
         long written = 0;
 
-        log.info("WritesPerInterval: " + writesPerInterval + " numberOfwrites" + numberOfWrites + " writeInterval " + writeInterval);
+        log.debug("WritesPerInterval: " + writesPerInterval + " numberOfwrites" + numberOfWrites + " writeInterval " + writeInterval);
 
         while (written < numberOfWrites) {
 

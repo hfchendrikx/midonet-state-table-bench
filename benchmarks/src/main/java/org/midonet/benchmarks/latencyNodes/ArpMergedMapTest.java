@@ -93,6 +93,23 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
         return (this.getCurrentTime() - entry.stale);
     }
 
+    @Override
+    public void readWarmup() {
+        for (int i=0;i<randomIpSet.length;i++) {
+            this.readEntry();
+        }
+    }
+
+    @Override
+    public void writeWarmup() {
+        for (int i=0;i<randomIpSet.length;i++) {
+            IPv4Addr ip = randomIpSet[i];
+            MAC mac = MAC.random();
+            ArpCacheEntry entry =  new ArpCacheEntry(mac, 0 /*expiry*/, 0 /*stale*/, 0 /*lastArp*/);
+            map.putOpinion(ip, entry);
+        }
+    }
+
     public void writeEntry() {
         IPv4Addr ip = randomIpSet[random.nextInt(randomIpSet.length)];
         MAC mac = MAC.random();

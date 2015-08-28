@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,17 +37,22 @@ public class Bookkeeper {
         return basePath + "/" + tag;
     }
 
-    protected String getPathToLog(String name) {
+    public String getPathToLog(String name) {
          return this.getPathToExperiment() + "/" + hostname + "/" + name;
     }
 
     public PrintStream getFileWriter(String name) {
+        PrintStream stream = this.getHeaderLessFileWriter(name);
+        stream.println("HOST: " + hostname + " DATE: " + (new Date()).toString());
+        return stream;
+    }
+
+    public PrintStream getHeaderLessFileWriter(String name) {
         String pathToFile = this.getPathToLog(name);
         File file = new File(pathToFile);
         file.getParentFile().mkdirs();
         try {
             PrintStream stream = new PrintStream(pathToFile);
-            stream.println("HOST: " + hostname);
             return stream;
         } catch (FileNotFoundException e) {
             log.error("Could not open file " + pathToFile + " for experiment log", e);

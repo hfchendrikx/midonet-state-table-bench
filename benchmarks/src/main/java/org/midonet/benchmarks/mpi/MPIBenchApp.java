@@ -120,9 +120,6 @@ public class MPIBenchApp {
     protected final String mpiHostName;
     protected final String mpiHostIp;
 
-    protected final MpiModels.Mpi mpiProto;
-    protected final MpiModels.MpiHost mpiHostProto;
-
     protected MPIBenchApp(int mpiSize, int mpiRank, String mpiHosts) {
         this.mpiSize = mpiSize;
         this.mpiRank = mpiRank;
@@ -138,23 +135,6 @@ public class MPIBenchApp {
         }
         mpiHostIp = hostIp;
         mpiHostName = hostName;
-
-
-        Set<String> mpiNodes =
-            new HashSet<>(Arrays.asList(mpiHosts.split(",")));
-        int mpiNodeCount = mpiNodes.size();
-
-        mpiHostProto = MpiModels.MpiHost.newBuilder()
-                                        .setRank(mpiRank)
-                                        .setSize(mpiSize)
-                                        .setHostName(mpiHostName)
-                                        .setHostIp(mpiHostIp)
-                                        .build();
-        mpiProto = MpiModels.Mpi.newBuilder()
-                                .setSize(mpiSize)
-                                .setNodeCount(mpiNodeCount)
-                                .setHostList(mpiHosts)
-                                .build();
     }
 
     /**
@@ -312,6 +292,23 @@ public class MPIBenchApp {
         throws MPIException {
         long[] data = (source == mpiRank) ? localData : new long[size];
         MPI.COMM_WORLD.bcast(data, size, MPI.LONG, source);
+        return data;
+    }
+
+    /**
+     * Broadcast an array to all processes from the given source
+     * @param localData is the data to be broadcasted (can be null on
+     *                  non-source processes.
+     * @param size is the length of the broadcasted array; must be set
+     *             (and equal) on all processes.
+     * @param source is the rank of the source process.
+     * @return the broadcasted data for the source, and a newly allocated
+     * array with the received data for the rest of the processes
+     */
+    protected int[] broadcast(int[] localData, int size, int source)
+            throws MPIException {
+        int[] data = (source == mpiRank) ? localData : new int[size];
+        MPI.COMM_WORLD.bcast(data, size, MPI.INT, source);
         return data;
     }
 

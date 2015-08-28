@@ -26,6 +26,7 @@ public class ReaderNode implements TestNode {
 
     @Override
     public void setup() {
+        this.reader.readWarmup();
         for (int i=0;i<numberOfWarmupReads;i++) {
             this.reader.readEntry();
         }
@@ -39,16 +40,18 @@ public class ReaderNode implements TestNode {
     }
 
     public String postProcessResults(Bookkeeper bookkeeper) {
-        PrintStream rawData = bookkeeper.getFileWriter("data");
+        PrintStream rawData = bookkeeper.getFileWriter("raw-latency-data");
         for (int i=0;i<latencies.length;i++) {
             rawData.println(latencies[i]);
         }
         rawData.close();
 
         PrintStream output = bookkeeper.getFileWriter("summary");
-        output.println("Mean: " + StatUtils.mean(Arrays.asList(latencies)));
-        output.println("Std. Deviation: " + StatUtils.standardDeviation(Arrays.asList(latencies)));
-        output.println("95th percentile: " + StatUtils.percentile(Arrays.asList(latencies), 0.95));
+        output.println("mean=" + StatUtils.mean(Arrays.asList(latencies)));
+        output.println("stdev=" + StatUtils.standardDeviation(Arrays.asList(latencies)));
+        output.println("95thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.95));
+        output.println("99thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.99));
+        output.println("9999thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.9999));
         output.close();
 
         return "";
