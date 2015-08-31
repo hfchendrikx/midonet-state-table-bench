@@ -1,0 +1,122 @@
+{
+    "servers": [
+        {
+            "port": 9996,
+            "host": "clusternode1",
+            "alias" : "c1",
+            "queries": [
+
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-bips.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec",
+                    "resultAlias": "bips",
+                    "attr": [
+                        "Count",
+                        "OneMinuteRate",
+                        "MeanRate"
+                    ]
+                },     
+
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-bops.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec",
+                    "resultAlias": "bips",
+                    "attr": [
+                        "Count",
+                        "OneMinuteRate",
+                        "MeanRate"
+                    ]
+                },            
+
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-mips.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec",
+                    "resultAlias": "bips",
+                    "attr": [
+                        "Count",
+                        "OneMinuteRate",
+                        "MeanRate"
+                    ]
+                },  
+
+{
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+        "settings" : {
+          "outputFile" : "logs/kafka-c1-cpu.log",
+          "maxLogFileSize" : "50MB",
+          "maxLogBackupFiles" : 200,
+          "delimiter" : "\t",
+          "debug" : false,
+          "typeNames" : ["name"]
+        }
+      } ],
+      "resultAlias": "os",
+      "obj" : "java.lang:type=OperatingSystem",
+      "attr" : [ "ProcessCpuLoad", "SystemCpuLoad", "SystemLoadAverage" ]
+    },
+
+
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-mem.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "java.lang:type=Memory",
+                    "resultAlias": "mem",
+                    "attr": [
+                        "HeapMemoryUsage",
+                        "NonHeapMemoryUsage"
+                    ]
+                }
+            ],
+            "numQueryThreads": 2
+        }
+    ]
+}
+

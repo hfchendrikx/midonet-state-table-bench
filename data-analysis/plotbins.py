@@ -6,20 +6,16 @@ from numpy.random import normal
 from os import listdir
 from os.path import isfile, join, isdir
 import numpy as np
+import jmxlogreader
+from experimentreader import  *
+from jmxlogreader import *
 
-EXPERIMENT_DIR = "scratch/readers-vs-latency/MMTB-1w40c100ups1000ts6000x"
-PLOT_LATENCIES = False
-PLOT_BOXPLOT = True
+EXPERIMENT_DIR = "scratch/MMTB-1w19c200ups1000ts60000x"
+JMXLOG_FILE_DIRECTORY = EXPERIMENT_DIR + "/logs";
+OVERLAY_JMX = True
+PLOT_LATENCIES = True
+PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
-
-def processDataFile(filename):
-    with open(filename) as f:
-        content = f.readlines()
-        content = content[1:]
-        content = [int(x.strip('\n'))/1000.0 for x in content]
-
-    return content
-
 
 if PLOT_HISTOGRAM:
     for f in listdir(EXPERIMENT_DIR):
@@ -76,7 +72,24 @@ if PLOT_LATENCIES:
     plt.xlabel("Time")
     plt.ylabel("Latency [ms]")
 
-    for x in latencies[:-1]:
-        plt.plot(x)
+    timeSeriesLatencies = calculateTimeSeriesLatencies(EXPERIMENT_DIR)
+
+    for x in timeSeriesLatencies:
+        if not x == 'start':
+            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+
+    start = long(timeSeriesLatencies['start'])
+
+    print start
+
+    if OVERLAY_JMX:
+        plt.twinx()
+
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 2", used=True, x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 1", used=True, x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 3", used=True, x0=start)
 
 plt.show()

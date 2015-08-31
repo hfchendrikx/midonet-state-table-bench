@@ -17,3 +17,4 @@ benchmark.out
 build/
 gradle-app.setting
 data-analysis/scratch/*
+*.pyc
