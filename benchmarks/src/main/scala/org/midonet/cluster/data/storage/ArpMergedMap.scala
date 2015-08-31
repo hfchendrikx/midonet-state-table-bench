@@ -36,6 +36,17 @@ object ArpMergedMap {
                                                ArpMergedMap.arpOrdering)
     }
 
+    def newArpMapAndReturnKafkaBus(mapId: String, owner: String, zkClient: ZkClient)
+    : (MergedMap[IPv4Addr, ArpCacheEntry], KafkaBus[IPv4Addr, ArpCacheEntry]) = {
+        val kafkaBus: KafkaBus[IPv4Addr, ArpCacheEntry] = new
+            KafkaBus[IPv4Addr, ArpCacheEntry](mapId, owner,
+                KafkaBus.defaultConfig(),
+                zkClient,
+                new ArpMergedMap())
+        (new MergedMap[IPv4Addr, ArpCacheEntry](kafkaBus,
+            ArpMergedMap.arpOrdering), kafkaBus)
+    }
+
     def timeoutDuration(timeout: Long): FiniteDuration =
         duration.pairLongToDuration(timeout, TimeUnit.MILLISECONDS)
 

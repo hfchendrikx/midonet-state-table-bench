@@ -17,6 +17,11 @@ public class ReaderNode implements TestNode {
     protected int numberOfWarmupReads = 0;
     Long[] latencies;
 
+    long startWarmupTime;
+    long endWarmupTime;
+    long startBenchmark;
+    long endBenchmark;
+
     public ReaderNode(TestReader theReader, int cNumberOfReads, int cNumberOfWarmupReads) {
         this.reader = theReader;
         this.numberOfReads = cNumberOfReads;
@@ -26,17 +31,27 @@ public class ReaderNode implements TestNode {
 
     @Override
     public void setup() {
+        this.startWarmupTime = System.currentTimeMillis();
         this.reader.readWarmup();
         for (int i=0;i<numberOfWarmupReads;i++) {
             this.reader.readEntry();
         }
+        this.endWarmupTime = System.currentTimeMillis();
     }
 
     @Override
     public void run() {
+        this.startBenchmark = System.currentTimeMillis();
+
         for (int i =0; i< numberOfReads;i++) {
             latencies[i] = this.reader.readEntry();
         }
+
+        this.endBenchmark = System.currentTimeMillis();
+    }
+
+    public void shutdown() {
+
     }
 
     public String postProcessResults(Bookkeeper bookkeeper) {
@@ -53,6 +68,12 @@ public class ReaderNode implements TestNode {
         output.println("99thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.99));
         output.println("9999thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.9999));
         output.close();
+
+        PrintStream logFile = bookkeeper.getFileWriter("timestamps");
+        logFile.println("startwarmup="+this.startWarmupTime);
+        logFile.println("endwarmup="+this.endWarmupTime);
+        logFile.println("startbenchmark="+this.startBenchmark);
+        logFile.println("endbenchmark=" + this.endBenchmark);
 
         return "";
     }

@@ -138,7 +138,7 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
         }
     }
 
-    private def shutdown(): Unit = {
+    def shutdown(): Unit = {
         producer.close()
         consumerThread.shutdownNow()
         consumer.shutdown()

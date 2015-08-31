@@ -9,4 +9,5 @@ public interface TestReader {
      */
     long readEntry();
     void readWarmup();
+    void shutdown();
 }

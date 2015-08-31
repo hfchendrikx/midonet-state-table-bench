@@ -14,6 +14,7 @@ import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.I0Itec.zkclient.ZkClient;
+import scala.Tuple2;
 
 import java.io.File;
 import java.util.List;
@@ -211,17 +212,18 @@ public class MergedMapTestBench extends MPIBenchApp {
              * (The kafka topic needs to be created by only one node)
              */
             MergedMap<IPv4Addr, ArpCacheEntry> theMap = null;
+            Tuple2<MergedMap<IPv4Addr, ArpCacheEntry>, KafkaBus<IPv4Addr, ArpCacheEntry>> mapAndBus = null;
             if (imTheWriter) {
-                theMap = ArpMergedMap.newArpMap(myMapName, "node" + worldRank, zookeeperClient);
+                mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMapName, "node" + worldRank, zookeeperClient);
             }
             try { this.barrier(); } catch (MPIException e) {
                 log.error("Error during waiting on barrier after node init", e);
             }
             if (!imTheWriter) {
-                theMap = ArpMergedMap.newArpMap(myMapName, "node" + worldRank, zookeeperClient);
+                mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMapName, "node" + worldRank, zookeeperClient);
             }
-
-            ArpMergedMapTest testReaderWriter = new ArpMergedMapTest(theMap, ipAddresses, random);
+            theMap = mapAndBus._1();
+            ArpMergedMapTest testReaderWriter = new ArpMergedMapTest(theMap, mapAndBus._2() , ipAddresses, random);
 
             if (imTheWriter) {
                 //You my friend are a writer
@@ -270,6 +272,7 @@ public class MergedMapTestBench extends MPIBenchApp {
             log.error("Error during waiting on barrier after main part of benchmark", e);
         }
 
+        node.shutdown();
         node.postProcessResults(bookkeeper);
 
         try {

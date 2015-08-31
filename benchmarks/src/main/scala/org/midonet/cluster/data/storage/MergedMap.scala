@@ -106,6 +106,7 @@ class MergedMap[K, V >: Null <: AnyRef](storage: MergedMapBus[K, V],
 
     private val owner = storage.owner
 
+
     /* This method handles opinions emitted from storage. */
     private def onNewOpinion(opinion: (K, V, String)): Unit = opinion match {
         // Signals the the given opinion is being deleted.

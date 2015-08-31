@@ -16,7 +16,7 @@ def processDataFile(filename):
         content = content[1:]
         content = [int(x.strip('\n'))/1000.0 for x in content]
 
-    return content[1:]
+    return content
 
 
 def processOldSummaryFile(filename):
@@ -25,7 +25,7 @@ def processOldSummaryFile(filename):
         content = content[1:]
         content = [float((x.split(' '))[-1]) for x in content]
 
-    return {'mean': float(content[0]), 'stddev': float(content[1]), '95th': float(content[2])}
+    return {'mean': float(content[0]), 'stddev': float(content[1]), '95th': float(content[2]), 'file': filename}
 
 
 def readOldExperimentSummaries(directory):
@@ -47,8 +47,7 @@ def calculateOverallExperimentSummary(summaries):
 
     for nodeName in summaries:
         meanAccumulator = meanAccumulator + summaries[nodeName]['mean']
-        pooledStdDev = pooledStdDev + summaries[nodeName]['stddev']**2
-        print summaries[nodeName]['stddev']
+        pooledStdDev = pooledStdDev + summaries[nodeName]['stddev']*summaries[nodeName]['stddev']
 
         if (grandSummary['95thmax'] < summaries[nodeName]['95th']):
             grandSummary['95thmax'] = summaries[nodeName]['95th']
@@ -58,9 +57,6 @@ def calculateOverallExperimentSummary(summaries):
     grandSummary['mean'] = meanAccumulator / nodeCount / 1000.0
     grandSummary['stddev'] = sqrt(pooledStdDev / nodeCount) / 1000.0
     grandSummary['95thmax'] = grandSummary['95thmax'] / 1000.0
-
-    print grandSummary
-    print "------"
 
     return grandSummary
 
@@ -72,8 +68,6 @@ def calculateExperimentStatistics(directory):
             filename = directory + "/" + f + "/raw-latency-data"
             if (isfile(filename)):
                 latencies = latencies + processDataFile(filename)
-
-    print len(latencies)
 
     return {'mean': numpy.mean(latencies), 'stddev': numpy.std(latencies), '95thmax':numpy.percentile(latencies, 95)}
 
@@ -99,29 +93,36 @@ def listExperiments(directory):
 #########################
 experiments = listExperiments("scratch/readers-vs-latency")
 
-readers = []
-latency = []
-deviation = []
-max95th = []
+#########################
+# This part plots the graphs by calculating the statistics from the raw data
+#########################
+# readers = []
+# latency = []
+# deviation = []
+# max95th = []
+#
+# for experiment in experiments:
+#     grandSummary = calculateExperimentStatistics("scratch/readers-vs-latency/"+experiment)#calculateOverallExperimentSummary(readOldExperimentSummaries("scratch/readers-vs-latency/"+experiment))
+#     readers.append(experiments[experiment]['readers'])
+#     latency.append(grandSummary['mean'])
+#     deviation.append(grandSummary['stddev'])
+#     max95th.append(grandSummary['95thmax'])
+#
+# plt.title("Number of readers vs Latency")
+# plt.xlabel("Number of readers")
+# plt.ylabel("Latency [ms]")
+#
+# data = zip(readers, latency, deviation, max95th)
+# x, y, err, max95th = zip(*sorted(data))
+#
+# plt.plot(x, y, linestyle='--', marker='o', label="Grand mean")
+# plt.plot(x, max95th, linestyle='', marker='D', color='r', label="Max 95th percentile of one node")
+# plt.errorbar(x, y, yerr=err, linestyle=' ', color='b', label="Pooled standard deviation")
 
-for experiment in experiments:
-    grandSummary = calculateExperimentStatistics("scratch/readers-vs-latency/"+experiment)#calculateOverallExperimentSummary(readOldExperimentSummaries("scratch/readers-vs-latency/"+experiment))
-    readers.append(experiments[experiment]['readers'])
-    latency.append(grandSummary['mean'])
-    deviation.append(grandSummary['stddev'])
-    max95th.append(grandSummary['95thmax'])
 
-plt.title("Number of readers vs Latency")
-plt.xlabel("Number of readers")
-plt.ylabel("Latency [ms]")
-
-data = zip(readers, latency, deviation, max95th)
-x, y, err, max95th = zip(*sorted(data))
-
-plt.plot(x, y, linestyle='--', marker='o', label="Grand mean")
-plt.plot(x, max95th, linestyle='', marker='D', color='r', label="Max 95th percentile of one node")
-plt.errorbar(x, y, yerr=err, linestyle=' ', color='b', label="Pooled standard deviation")
-
+#########################
+# This part plots the graphs by calculating the statistics from the summaries
+#########################
 readers = []
 latency = []
 deviation = []
@@ -143,8 +144,6 @@ x, y, err, max95th = zip(*sorted(data))
 plt.plot(x, y, linestyle='--', marker='o', color='g', label="Grand mean")
 plt.plot(x, max95th, linestyle='', marker='D', color='g', label="Max 95th percentile of one node")
 plt.errorbar(x, y, yerr=err, linestyle=' ', color='g', label="Pooled standard deviation")
-
-
 
 plt.legend(prop={'size':12})
 plt.ylim(0, 20)

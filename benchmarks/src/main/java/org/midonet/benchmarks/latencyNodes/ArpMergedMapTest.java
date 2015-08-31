@@ -1,8 +1,10 @@
 package org.midonet.benchmarks.latencyNodes;
 
+import kafka.Kafka;
 import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.cluster.data.storage.ArpMergedMap;
+import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.ARP;
@@ -28,6 +30,7 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
     private TestObserver obs;
     private int readOffset = 0;
     private Random random;
+    private KafkaBus<IPv4Addr, ArpCacheEntry> kafkaBus;
 
     public static IPv4Addr[] generateSetOfRandomIps(int size) {
         IPv4Addr[] list = new IPv4Addr[size];
@@ -67,11 +70,12 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
         }
     }
 
-    public ArpMergedMapTest(MergedMap<IPv4Addr, ArpCacheEntry> mapUnderTest, IPv4Addr[] ipSet, Random theOracle) {
+    public ArpMergedMapTest(MergedMap<IPv4Addr, ArpCacheEntry> mapUnderTest, KafkaBus<IPv4Addr, ArpCacheEntry> kafkaBus, IPv4Addr[] ipSet, Random theOracle) {
         this.randomIpSet = ipSet;
         this.random = theOracle;
         this.map = mapUnderTest;
         this.obs = ArpMergedMap.arpMapObserver(mapUnderTest);
+        this.kafkaBus = kafkaBus;
     }
 
     private long getCurrentTime() {
@@ -108,6 +112,10 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
             ArpCacheEntry entry =  new ArpCacheEntry(mac, 0 /*expiry*/, 0 /*stale*/, 0 /*lastArp*/);
             map.putOpinion(ip, entry);
         }
+    }
+
+    public void shutdown() {
+        kafkaBus.shutdown();
     }
 
     public void writeEntry() {

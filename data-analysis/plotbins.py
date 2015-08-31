@@ -7,7 +7,7 @@ from os import listdir
 from os.path import isfile, join, isdir
 import numpy as np
 
-EXPERIMENT_DIR = "scratch/readers-vs-latency/MMTB-1w100c100ups1000ts6000x"
+EXPERIMENT_DIR = "scratch/readers-vs-latency/MMTB-1w40c100ups1000ts6000x"
 PLOT_LATENCIES = False
 PLOT_BOXPLOT = True
 PLOT_HISTOGRAM = False
@@ -18,7 +18,7 @@ def processDataFile(filename):
         content = content[1:]
         content = [int(x.strip('\n'))/1000.0 for x in content]
 
-    return content[1:]
+    return content
 
 
 if PLOT_HISTOGRAM:

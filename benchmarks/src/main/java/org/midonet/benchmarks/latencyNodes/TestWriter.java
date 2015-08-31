@@ -6,4 +6,5 @@ package org.midonet.benchmarks.latencyNodes;
 public interface TestWriter {
     public void writeEntry();
     public void writeWarmup();
+    public void shutdown();
 }

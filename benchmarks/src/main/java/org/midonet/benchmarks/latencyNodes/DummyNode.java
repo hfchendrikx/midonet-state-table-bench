@@ -15,6 +15,10 @@ public class DummyNode implements TestNode {
 
     }
 
+    public void shutdown() {
+
+    }
+
     public String postProcessResults(Bookkeeper bookkeeper) {
         return "";
     }
