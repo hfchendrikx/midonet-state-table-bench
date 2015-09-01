@@ -30,7 +30,7 @@ def processOldSummaryFile(filename):
     with open(filename) as f:
         content = f.readlines()
         content = content[1:]
-        content = [float((x.split(' '))[-1]) for x in content]
+        content = [float((x.split('='))[-1]) for x in content]
 
     return {'mean': float(content[0]), 'stddev': float(content[1]), '95th': float(content[2]), 'file': filename}
 

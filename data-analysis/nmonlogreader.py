@@ -1,14 +1,29 @@
 import matplotlib.pyplot as plt
+from os import listdir
+from os.path import isfile, join, isdir
 from dateutil.parser import parse
 
 NMON_NET_READ = "read"
 NMON_NET_WRITE = "write"
+
+NMON_TIMEZONE_CORRECTION = 9*3600
 
 def getFilename(name, cluster, type):
     return name + "-" + cluster + "-" + type + ".log"
 
 def getNetworkKeyName(interface, read_or_write):
     return interface + "-" + read_or_write + "-KB/s"
+
+def readNmonDirectory(directory, read_network=True, read_disk=True):
+    data = {}
+
+    for filename in listdir(directory):
+        pathToFile = directory + "/" + filename
+        if (isfile(pathToFile)):
+            nodename = filename.split("_")[0]
+            data[nodename] = readNmonLog(pathToFile, read_network, read_disk)
+
+    return data
 
 def readNmonLog(filename, read_network=True, read_disk=True):
     data = {}
@@ -31,7 +46,7 @@ def readNmonLog(filename, read_network=True, read_disk=True):
             #Timestamp of the next measurement
             if (type == "ZZZZ"):
                 dt = parse(line_parts[2])
-                current_time = int(dt.strftime("%s"))
+                current_time = int(dt.strftime("%s"))+NMON_TIMEZONE_CORRECTION
                 timestamps.append(current_time)
 
             if (type == 'NET' and read_network):
@@ -81,8 +96,8 @@ def _processLineFloatValues(name, data, line_parts, keys):
 
 def plotNetworkUsage(data, node_name, interface, x0=None):
     if x0 is None:
-        x0 = float(data['TIME'][0]);
-    x = [(x - x0) for x in data['TIME']]
+        x0 = float(data['TIME'][0])*1000.0;
+    x = [(x - (x0/1000.0)) for x in data['TIME']]
 
     network_read = data['NET'][getNetworkKeyName(interface, NMON_NET_READ)]
     plt.plot(x, network_read, label=node_name + " " + interface + " read [KB/s]")
@@ -91,8 +106,8 @@ def plotNetworkUsage(data, node_name, interface, x0=None):
 
 def plotDiskUsage(data, node_name, disk, x0=None):
     if x0 is None:
-        x0 = float(data['TIME'][0]);
-    x = [(x - x0) for x in data['TIME']]
+        x0 = float(data['TIME'][0])*1000.0;
+    x = [(x - (x0/1000.0)) for x in data['TIME']]
 
     disk_read = data['DISKREAD'][disk]
     plt.plot(x, disk_read, label=node_name + " " + disk + " read [KB/s]")
@@ -101,8 +116,8 @@ def plotDiskUsage(data, node_name, disk, x0=None):
 
 def plotDiskBusy(data, node_name, disk, x0=None):
     if x0 is None:
-        x0 = float(data['TIME'][0]);
-    x = [(x - x0) for x in data['TIME']]
+        x0 = float(data['TIME'][0])*1000.0;
+    x = [(x - (x0/1000.0)) for x in data['TIME']]
 
     disk_busy = data['DISKBUSY'][disk]
     plt.plot(x, disk_busy, label=node_name + " " + disk + " busy [%]")
@@ -112,7 +127,7 @@ def plotDiskBusy(data, node_name, disk, x0=None):
 #########################
 if __name__ == "__main__":
 
-    LOG_FILE = "scratch/example.nmon";
+    LOG_FILE = "scratch/test1/nmon/clusternode1_150901_0557.nmon";
 
     data = readNmonLog(LOG_FILE)
 
@@ -120,14 +135,13 @@ if __name__ == "__main__":
     plt.xlabel("Seconds since start")
     plt.ylabel("Rate [KB/s]")
 
-    plotNetworkUsage(data, "Kafka 1", 'wlan0')
-    plotDiskUsage(data, "Kafka 1", "sda")
+    plotNetworkUsage(data, "Kafka 1", 'eth4')
 
     plt.legend(prop={'size':12})
 
     plt.twinx()
 
-    plotDiskBusy(data, "Kafka 1", "sda")
+    #plotDiskBusy(data, "Kafka 1", "sda")
 
     plt.legend(prop={'size':12})
 

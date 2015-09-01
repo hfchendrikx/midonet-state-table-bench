@@ -9,13 +9,25 @@ import numpy as np
 import jmxlogreader
 from experimentreader import  *
 from jmxlogreader import *
+from nmonlogreader import *
 
-EXPERIMENT_DIR = "scratch/MMTB-1w19c200ups1000ts60000x"
-JMXLOG_FILE_DIRECTORY = EXPERIMENT_DIR + "/logs";
-OVERLAY_JMX = True
+BASE_DIR = "scratch/test1"
+
 PLOT_LATENCIES = True
+OVERLAY_JMX_CPU = True
+OVERLAY_JMX_MEMORY = False
+OVERLAY_NMON_NETWORK = False
+OVERLAY_NMON_NETWORK_INTERFACES = ['eth4']
+OVERLAY_NMON_DISK_RATE = False
+OVERLAY_NMON_DISK_BUSY = False
+OVERLAY_NMON_DISK_DISKS = ['sda']
+
 PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
+
+EXPERIMENT_DIR = BASE_DIR + "/exp/MMTB-1w19c100ups2000ts60000x";
+JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
+NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
 if PLOT_HISTOGRAM:
     for f in listdir(EXPERIMENT_DIR):
@@ -76,16 +88,15 @@ if PLOT_LATENCIES:
 
     for x in timeSeriesLatencies:
         if not x == 'start':
-            pass#plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
 
-    plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
+    #plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
     plt.ylim(0, 50)
 
-    if OVERLAY_JMX:
+    if OVERLAY_JMX_CPU:
         plt.twinx()
-
         data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_CPU))
         plotCpuUsage(data, "Kafka node 2", x0=start)
         data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_CPU))
@@ -93,13 +104,56 @@ if PLOT_LATENCIES:
         data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_CPU))
         plotCpuUsage(data, "Kafka node 3", x0=start)
         plt.ylim(0, 100)
-        plt.ylabel("Heap usage [Mb]")
+        plt.ylabel("Load average [%]")
+
+    if OVERLAY_JMX_MEMORY:
+        plt.twinx()
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 2", x0=start, used=True)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 1", x0=start, used=True)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_MEMORY))
+        plotHeapUsage(data, "Kafka node 3", x0=start, used=True)
+        plt.ylabel("Load average [%]")
+
+    if OVERLAY_NMON_NETWORK:
+        plt.twinx()
+
+        data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
+
+        for nodename in data:
+            for interface in OVERLAY_NMON_NETWORK_INTERFACES:
+                plotNetworkUsage(data[nodename], nodename, interface, x0=start)
+
+        plt.ylim(0, 10000)
+        plt.ylabel("Rate [KB/s]")
+
+    if OVERLAY_NMON_DISK_RATE:
+        plt.twinx()
+
+        data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
+
+        for nodename in data:
+            for disk in OVERLAY_NMON_DISK_DISKS:
+                plotDiskUsage(data[nodename], nodename, disk, x0=start)
+
+        plt.ylabel("Rate [KB/s]")
+
+    if OVERLAY_NMON_DISK_BUSY:
+        plt.twinx()
+
+        data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
+
+        for nodename in data:
+            for disk in OVERLAY_NMON_DISK_DISKS:
+                plotDiskBusy(data[nodename], nodename, disk, x0=start)
+
+        plt.ylabel("Busy [%]")
 
 
     ax = plt.gca()  # get the current axes
     ax.relim()      # make sure all the data fits
     ax.autoscale()  # auto-scale
-
 
     plt.legend()
 

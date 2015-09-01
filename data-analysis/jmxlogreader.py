@@ -86,7 +86,7 @@ def plotCpuUsage(data, node_name="", x0=None):
 #########################
 if __name__ == "__main__":
 
-    LOG_FILE_DIRECTORY = "scratch/MMTB-1w19c200ups1000ts60000x/logs";
+    LOG_FILE_DIRECTORY = "scratch/test1/jmx";
 
 
     plt.title("JVM Heap")

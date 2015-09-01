@@ -9,10 +9,12 @@ from numpy.random import normal
 from os import listdir
 from os.path import isfile, join, isdir
 
+EXPERIMENT_DIR = "scratch/test1/exp"
+
 #########################
 #Plot readers vs latency#
 #########################
-experiments = listExperiments("scratch/readers-vs-latency")
+experiments = listExperiments(EXPERIMENT_DIR)
 
 #########################
 # This part plots the graphs by calculating the statistics from the raw data
@@ -49,7 +51,7 @@ latency = []
 deviation = []
 max95th = []
 for experiment in experiments:
-    grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries("scratch/readers-vs-latency/"+experiment))
+    grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries(EXPERIMENT_DIR + "/"+experiment))
     readers.append(experiments[experiment]['readers'])
     latency.append(grandSummary['mean'])
     deviation.append(grandSummary['stddev'])
