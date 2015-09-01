@@ -69,27 +69,38 @@ if PLOT_BOXPLOT:
 if PLOT_LATENCIES:
     plt.figure()
     plt.title("Latency over time")
-    plt.xlabel("Time")
+    plt.xlabel("Time since start of test [s]")
     plt.ylabel("Latency [ms]")
 
     timeSeriesLatencies = calculateTimeSeriesLatencies(EXPERIMENT_DIR)
 
     for x in timeSeriesLatencies:
         if not x == 'start':
-            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+            pass#plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+
+    plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
-
-    print start
+    plt.ylim(0, 50)
 
     if OVERLAY_JMX:
         plt.twinx()
 
-        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_MEMORY))
-        plotHeapUsage(data, "Kafka node 2", used=True, x0=start)
-        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_MEMORY))
-        plotHeapUsage(data, "Kafka node 1", used=True, x0=start)
-        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_MEMORY))
-        plotHeapUsage(data, "Kafka node 3", used=True, x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_CPU))
+        plotCpuUsage(data, "Kafka node 2", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_CPU))
+        plotCpuUsage(data, "Kafka node 1", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_CPU))
+        plotCpuUsage(data, "Kafka node 3", x0=start)
+        plt.ylim(0, 100)
+        plt.ylabel("Heap usage [Mb]")
+
+
+    ax = plt.gca()  # get the current axes
+    ax.relim()      # make sure all the data fits
+    ax.autoscale()  # auto-scale
+
+
+    plt.legend()
 
 plt.show()
