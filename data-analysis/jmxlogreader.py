@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 LOG_TYPE_MEMORY = "mem"
 LOG_TYPE_CPU = "cpu"
@@ -6,6 +7,7 @@ LOG_TYPE_BYTES_IN_PER_SECOND = "bips"
 LOG_TYPE_BYTES_OUT_PER_SECOND = "bops"
 LOG_TYPE_MESSAGES_IN_PER_SECOND = "mips"
 LOG_TYPE_GENERAL = "general"
+LOG_TYPE_GARBAGE_COLLECTION = "gc"
 
 CLUSTER_NODE_1 = "c1"
 CLUSTER_NODE_2 = "c2"
@@ -23,10 +25,15 @@ LOG_JVM_CPU_SYSTEM_LOAD_AVERAGE = "SystemLoadAverage"
 LOG_JVM_CPU_SYSTEM_CPU_LOAD = "SystemCpuLoad"
 LOG_JVM_CPU_PROCESS_CPU_LOAD = "ProcessCpuLoad"
 
+LOG_JVM_GC_PARNEW_COUNT = "ParNew.CollectionCount"
+LOG_JVM_GC_PARNEW_TIME = "ParNew.CollectionTime"
+LOG_JVM_GC_CONCURRENTMARKSWEEP_COUNT = "ConcurrentMarkSweep.CollectionCount"
+LOG_JVM_GC_CONCURRENTMARKSWEEP_TIME = "ConcurrentMarkSweep.CollectionTime"
+
 def getFilename(name, cluster, type):
     return name + "-" + cluster + "-" + type + ".log"
 
-def readKeyLog(filename, keys=[], start = 0):
+def readKeyLog(filename, keys=[], start = 0, name_length=1):
     data = {}
 
     with open(filename) as f:
@@ -35,7 +42,8 @@ def readKeyLog(filename, keys=[], start = 0):
         for line in content:
             parts = line.strip("\n").split("\t")
             keyParts = parts[0].split(".")
-            key = keyParts[-1]
+            keyParts = keyParts[-name_length:]
+            key = '.'.join(keyParts)
 
             if len(keys) == 0 or key in keys:
                 if (key not in data):
@@ -78,6 +86,43 @@ def plotCpuUsage(data, node_name="", x0=None):
     system_load_average = [y[1] * 100 for y in data[LOG_JVM_CPU_SYSTEM_LOAD_AVERAGE]]
     plt.plot(x, process_cpu_load, label=node_name + " System Load Average [%]")
 
+def plotGcMoments(data, node_name="", x0=None, color='r'):
+    if x0 is None:
+        x0 = data[LOG_JVM_GC_PARNEW_COUNT][0][0];
+
+    parnew_count = data[LOG_JVM_GC_PARNEW_COUNT]
+    cms_count = data[LOG_JVM_GC_CONCURRENTMARKSWEEP_COUNT]
+
+    last_parnew = parnew_count[0][1]
+    last_cms = cms_count[0][1]
+    parnew_events = []
+    cms_events = []
+
+    for i in range(len(parnew_count)):
+
+        delta_parnew = parnew_count[i][1] - last_parnew
+        delta_cms = cms_count[i][1] - last_cms
+
+        if (delta_cms > 0):
+            x = (cms_count[i][0] - x0) / 1000
+            cms_events.append((x, int(delta_cms)))
+
+        if (delta_parnew > 0):
+            x = (parnew_count[i][0] - x0) / 1000
+            parnew_events.append((x, int(delta_parnew)))
+
+        last_parnew = parnew_count[i][1]
+        last_cms = cms_count[i][1]
+
+    if len(cms_events) > 0:
+        x, y = zip(*cms_events)
+        plt.scatter(x, y, marker="D", color=color, label=node_name + " GC (Concurrent Mark Sweep) [times]")
+
+    if len(parnew_events) > 0:
+        x, y = zip(*parnew_events)
+        plt.scatter(x, y, marker="o", color=color, label=node_name + " GC (Par New) [times]")
+
+
 
 
 
@@ -86,7 +131,7 @@ def plotCpuUsage(data, node_name="", x0=None):
 #########################
 if __name__ == "__main__":
 
-    LOG_FILE_DIRECTORY = "scratch/test1/jmx";
+    LOG_FILE_DIRECTORY = "scratch/steady-state-1/jmx";
 
 
     plt.title("JVM Heap")
@@ -122,6 +167,22 @@ if __name__ == "__main__":
     data = readKeyLog(LOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_CPU))
     plotCpuUsage(data, "Kafka node 3")
 
+    plt.legend(prop={'size':12})
+
+    plt.figure();
+
+    plt.title("Garbage Collection")
+    plt.xlabel("Seconds since start")
+    plt.ylabel("Number of GC's performed during measurement interval")
+
+    data = readKeyLog(LOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotGcMoments(data, "Kafka node 2", color = 'g')
+    data = readKeyLog(LOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotGcMoments(data, "Kafka node 1", color = 'r')
+    data = readKeyLog(LOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotGcMoments(data, "Kafka node 3", color = 'b')
+
+    plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.legend(prop={'size':12})
 
     plt.show()
