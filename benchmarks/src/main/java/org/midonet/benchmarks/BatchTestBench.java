@@ -114,6 +114,7 @@ public class BatchTestBench extends MPIBenchApp {
                 PrintStream logFile = bookkeeper.getFileWriter("NOT_ENOUGH_NODES");
                 logFile.println("Not enough nodes were available during execution");
                 logFile.close();
+                log.error("NOT ENOUGH NODES AVAILABLE FOR TEST", e);
             }
         }
     }
@@ -151,7 +152,13 @@ public class BatchTestBench extends MPIBenchApp {
                 setRestartJvm(false);
             }
         } else {
-            bench.run();
+
+            try {
+                bench.run();
+            } catch (Exception e) {
+                log.error("Exception during bench.run()", e);
+            }
+
             if (worldRank == 0) {
                 setRestartJvm(true);
             }

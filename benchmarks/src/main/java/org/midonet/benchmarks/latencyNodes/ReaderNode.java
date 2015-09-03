@@ -69,14 +69,6 @@ public class ReaderNode implements TestNode {
         output.println("9999thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.9999));
         output.close();
 
-        PrintStream output2 = bookkeeper.getFileWriter("summary-without-head");
-        output.println("mean=" + StatUtils.mean(Arrays.asList(latencies)));
-        output.println("stdev=" + StatUtils.standardDeviation(Arrays.asList(latencies)));
-        output.println("95thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.95));
-        output.println("99thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.99));
-        output.println("9999thpercentile=" + StatUtils.percentile(Arrays.asList(latencies), 0.9999));
-        output.close();
-
         PrintStream logFile = bookkeeper.getFileWriter("timestamps");
         logFile.println("startwarmup="+this.startWarmupTime);
         logFile.println("endwarmup="+this.endWarmupTime);

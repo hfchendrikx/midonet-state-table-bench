@@ -9,7 +9,7 @@ from numpy.random import normal
 from os import listdir
 from os.path import isfile, join, isdir
 
-EXPERIMENT_DIR = "scratch/test1/exp"
+EXPERIMENT_DIR = "scratch/readers-vs-latency-10min-240/exp"
 
 #########################
 #Plot readers vs latency#
@@ -69,7 +69,7 @@ plt.plot(x, max95th, linestyle='', marker='D', color='g', label="Max 95th percen
 plt.errorbar(x, y, yerr=err, linestyle=' ', color='g', label="Pooled standard deviation")
 
 plt.legend(prop={'size':12})
-plt.ylim(0, 20)
-plt.xlim(0, 102)
+plt.ylim(0, 50)
+plt.xlim(0, 242)
 plt.show()
 

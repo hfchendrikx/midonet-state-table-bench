@@ -251,10 +251,16 @@ public class MergedMapTestBench extends MPIBenchApp {
 
         /**
          * Start of testing
+         * All exceptions need to be caught, because if one node misses a
+         * barrier the whole test gets stuck.
          */
 
         log.debug("Setting up benchmark");
-        node.setup();
+        try {
+            node.setup();
+        } catch (Exception e) {
+            log.error("Exception during node.setup()", e);
+        }
 
         log.debug("Awaiting setup of other nodes");
         try {
@@ -264,7 +270,11 @@ public class MergedMapTestBench extends MPIBenchApp {
         }
 
         log.debug("Starting main part of benchmark");
-        node.run();
+        try {
+            node.run();
+        } catch (Exception e) {
+            log.error("Exception during node.run()", e);
+        }
 
         try {
             this.barrier();
@@ -272,8 +282,17 @@ public class MergedMapTestBench extends MPIBenchApp {
             log.error("Error during waiting on barrier after main part of benchmark", e);
         }
 
-        node.shutdown();
-        node.postProcessResults(bookkeeper);
+        try {
+            node.shutdown();
+        } catch (Exception e) {
+            log.error("Exception during node.shutdown()", e);
+        }
+
+        try {
+            node.postProcessResults(bookkeeper);
+        } catch (Exception e) {
+            log.error("Exception during node.postProcessResults()", e);
+        }
 
         try {
             this.barrier();

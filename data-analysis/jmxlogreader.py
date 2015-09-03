@@ -131,7 +131,7 @@ def plotGcMoments(data, node_name="", x0=None, color='r'):
 #########################
 if __name__ == "__main__":
 
-    LOG_FILE_DIRECTORY = "scratch/steady-state-1/jmx";
+    LOG_FILE_DIRECTORY = "scratch/readers-vs-latency-10min-240/jmx";
 
 
     plt.title("JVM Heap")
