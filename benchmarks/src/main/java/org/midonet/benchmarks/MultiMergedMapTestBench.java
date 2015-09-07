@@ -245,6 +245,11 @@ public class MultiMergedMapTestBench extends TestBench {
             }
         }
 
+        log.debug("Gathering all nodes for start of test cycle");
+        try { this.barrier(); } catch (MPIException e) {
+            log.error("Error during waiting on barrier before nodeTestCycle", e);
+        }
+
         this.nodeTestCycle(node);
     }
 

@@ -43,11 +43,7 @@ public class ArpMergedMapObserver implements Observer<Tuple2<IPv4Addr, ArpCacheE
 
     @Override
     public void onError(Throwable e) {
-
-    }
-
-    public boolean isDone() {
-        return done;
+        log.error("Observer.onError", e);
     }
 
     @Override
