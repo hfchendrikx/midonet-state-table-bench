@@ -21,6 +21,20 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
+/**
+ * The MergedMapTestBench is for testing the latency/throughput of the kafka cluster. This test bench
+ * creates multiple maps with a single writer node per map and one or more nodes receiving updates
+ * for that map.
+ *
+ * An example of this with 2 maps and 3 readers per map
+ *
+ *  Writer          Writer
+ *    |               |
+ *   Map             Map
+ * /  |  \         /  |  \
+ * R  R  R         R  R  R
+ *
+ */
 public class MergedMapTestBench extends MPIBenchApp {
 
     int worldSize;

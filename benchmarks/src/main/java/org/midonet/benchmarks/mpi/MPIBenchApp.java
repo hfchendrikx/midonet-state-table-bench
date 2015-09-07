@@ -75,6 +75,14 @@ public class MPIBenchApp {
 
     }
 
+    public static long getTime() {
+        try {
+            return (long)(MPI.wtime() * 1000000);
+        } catch (MPIException e) {
+            return -1000000000l;
+        }
+    }
+
     protected class MPIBlockDistribution extends BlockDistribution {
         public MPIBlockDistribution(int globalCount) {
             super(globalCount, mpiSize, mpiRank);

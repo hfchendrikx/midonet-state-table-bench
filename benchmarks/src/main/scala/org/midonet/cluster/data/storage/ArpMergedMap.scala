@@ -62,6 +62,11 @@ object ArpMergedMap {
         map.observable subscribe obs
         obs
     }
+
+    def unsubscribedAwaitableMapObserver() : ArpObs = {
+        new TestObserver[(IPv4Addr, ArpCacheEntry)]()
+          with AwaitableObserver[(IPv4Addr, ArpCacheEntry)]
+    }
 }
 
 class ArpEncoder() extends Serializer[(IPv4Addr, ArpCacheEntry, String)] {

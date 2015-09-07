@@ -125,5 +125,14 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
         map.putOpinion(ip, entry);
     }
 
+    public static ArpCacheEntry createEntry(long currentTime) {
+        MAC mac = MAC.random();
+        return new ArpCacheEntry(MAC.random(), 0, currentTime, 0);
+    }
+
+    public static long getTimeFromEntry(ArpCacheEntry entry) {
+        return entry.stale;
+    }
+
 
 }
