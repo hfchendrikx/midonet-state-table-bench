@@ -8,6 +8,7 @@ from experimentreader import *
 from numpy.random import normal
 from os import listdir
 from os.path import isfile, join, isdir
+from matplotlib.ticker import MaxNLocator
 
 EXPERIMENT_DIR = "scratch/readers-vs-latency-10min-240/exp"
 

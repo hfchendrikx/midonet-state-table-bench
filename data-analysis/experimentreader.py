@@ -7,10 +7,13 @@ from numpy import sqrt
 MMTB_regexp = 'MMTB-(\d)w(\d+)c(\d+)ups(\d+)ts(\d+)x'
 
 def processDataFile(filename):
-    with open(filename) as f:
-        content = f.readlines()
-        content = content[1:]
-        content = [int(x.strip('\n'))/1000.0 for x in content]
+    try:
+        with open(filename) as f:
+            content = f.readlines()
+            content = content[1:]
+            content = [int(x.strip('\n'))/1000.0 for x in content]
+    except ValueError:
+        content = []
 
     return content
 
@@ -86,7 +89,13 @@ def calculateTimeSeriesLatencies(directory):
             filename = directory + "/" + f + "/raw-latency-data"
             if (isfile(filename)):
                 data = processDataFile(filename)
-                timestamps = processKeyFile(directory + "/" + f + "/timestamps")
+
+                if (isfile(directory + "/" + f + "/timestamps")):
+                    timestamps = processKeyFile(directory + "/" + f + "/timestamps")
+                else:
+                    continue
+
+
                 start = float(timestamps['startbenchmark'])
                 end = float(timestamps['endbenchmark'])
                 delta = (end-start)/len(data);

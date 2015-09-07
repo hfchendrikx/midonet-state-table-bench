@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+##############################
+#JMX LOGS ARE IN MILLISECONDS#
+##############################
+
 LOG_TYPE_MEMORY = "mem"
 LOG_TYPE_CPU = "cpu"
 LOG_TYPE_BYTES_IN_PER_SECOND = "bips"
@@ -15,6 +19,10 @@ CLUSTER_NODE_3 = "c3"
 
 LOG_JVM_KAFKA = "kafka"
 LOG_JVM_ZOOKEEPER = "zoo"
+
+LOG_JVM_ZK_MAXREQUESTLATENCY = "MaxRequestLatency"
+LOG_JVM_ZK_PACKETSRECEIVED = "PacketsReceived"
+LOG_JVM_ZK_PACKETSSENT = "PacketsSent"
 
 LOG_JVM_MEM_HEAP_USED = "HeapMemoryUsage_used"
 LOG_JVM_MEM_HEAP_INIT = "HeapMemoryUsage_init"
@@ -86,6 +94,33 @@ def plotCpuUsage(data, node_name="", x0=None):
     system_load_average = [y[1] * 100 for y in data[LOG_JVM_CPU_SYSTEM_LOAD_AVERAGE]]
     plt.plot(x, process_cpu_load, label=node_name + " System Load Average [%]")
 
+def plotZookeeperMaxLatency(data, node_name="", x0=None):
+    if x0 is None:
+        x0 = data[LOG_JVM_ZK_MAXREQUESTLATENCY][0][0];
+    x = [(x[0]- x0) / (1000) for x in data[LOG_JVM_ZK_MAXREQUESTLATENCY]]
+
+    max_latency = [y[1] for y in data[LOG_JVM_ZK_MAXREQUESTLATENCY]]
+    plt.plot(x, max_latency, label=node_name + " Max Latency [ms]")
+
+def plotZookeeperPacketsPerInterval(data, node_name="", color="r", x0=None):
+    if x0 is None:
+        x0 = data[LOG_JVM_ZK_PACKETSRECEIVED][0][0];
+    x = [(x[0]- x0) / (1000) for x in data[LOG_JVM_ZK_PACKETSRECEIVED]]
+
+    packets_received = data[LOG_JVM_ZK_PACKETSRECEIVED]
+    packets_sent = data[LOG_JVM_ZK_PACKETSSENT]
+
+    packets_received_per_interval = discrete_derivative(packets_received, x0)
+    packets_sent_per_interval = discrete_derivative(packets_sent, x0)
+
+    if len(packets_received_per_interval) > 0:
+        x, y = zip(*packets_received_per_interval)
+        plt.scatter(x, y, marker="D", color=color, label=node_name + " packets received")
+
+    if len(packets_sent_per_interval) > 0:
+        x, y = zip(*packets_sent_per_interval)
+        plt.scatter(x, y, marker="o", color=color, label=node_name + " packets sent")
+
 def plotGcMoments(data, node_name="", x0=None, color='r'):
     if x0 is None:
         x0 = data[LOG_JVM_GC_PARNEW_COUNT][0][0];
@@ -93,26 +128,29 @@ def plotGcMoments(data, node_name="", x0=None, color='r'):
     parnew_count = data[LOG_JVM_GC_PARNEW_COUNT]
     cms_count = data[LOG_JVM_GC_CONCURRENTMARKSWEEP_COUNT]
 
-    last_parnew = parnew_count[0][1]
-    last_cms = cms_count[0][1]
-    parnew_events = []
-    cms_events = []
+    # last_parnew = parnew_count[0][1]
+    # last_cms = cms_count[0][1]
+    # parnew_events = []
+    # cms_events = []
+    #
+    # for i in range(len(parnew_count)):
+    #
+    #     delta_parnew = parnew_count[i][1] - last_parnew
+    #     delta_cms = cms_count[i][1] - last_cms
+    #
+    #     if (delta_cms > 0):
+    #         x = ((cms_count[i][0] - x0) / 1000.0)
+    #         cms_events.append((x, int(delta_cms)))
+    #
+    #     if (delta_parnew > 0):
+    #         x = ((parnew_count[i][0] - x0) / 1000.0)
+    #         parnew_events.append((x, int(delta_parnew)))
+    #
+    #     last_parnew = parnew_count[i][1]
+    #     last_cms = cms_count[i][1]
 
-    for i in range(len(parnew_count)):
-
-        delta_parnew = parnew_count[i][1] - last_parnew
-        delta_cms = cms_count[i][1] - last_cms
-
-        if (delta_cms > 0):
-            x = (cms_count[i][0] - x0) / 1000
-            cms_events.append((x, int(delta_cms)))
-
-        if (delta_parnew > 0):
-            x = (parnew_count[i][0] - x0) / 1000
-            parnew_events.append((x, int(delta_parnew)))
-
-        last_parnew = parnew_count[i][1]
-        last_cms = cms_count[i][1]
+    cms_events = discrete_derivative(cms_count, x0)
+    parnew_events = discrete_derivative(parnew_count, x0)
 
     if len(cms_events) > 0:
         x, y = zip(*cms_events)
@@ -122,8 +160,41 @@ def plotGcMoments(data, node_name="", x0=None, color='r'):
         x, y = zip(*parnew_events)
         plt.scatter(x, y, marker="o", color=color, label=node_name + " GC (Par New) [times]")
 
+def plotTimeSpentInGC(data, node_name="", x0=None, color='r'):
+    if x0 is None:
+        x0 = data[LOG_JVM_GC_PARNEW_TIME][0][0];
+
+    parnew_time = data[LOG_JVM_GC_PARNEW_TIME]
+    cms_time = data[LOG_JVM_GC_CONCURRENTMARKSWEEP_TIME]
+
+    cms_events = discrete_derivative(cms_time, x0)
+    parnew_events = discrete_derivative(parnew_time, x0)
+
+    if len(cms_events) > 0:
+        x, y = zip(*cms_events)
+        plt.scatter(x, y, marker="D", color=color, label=node_name + " GC (Concurrent Mark Sweep) [ms]")
+
+    if len(parnew_events) > 0:
+        x, y = zip(*parnew_events)
+        plt.scatter(x, y, marker="o", color=color, label=node_name + " GC (Par New) [ms]")
 
 
+def discrete_derivative(data, x0=0):
+
+    last_y = data[0][1]
+    nonzero_derivative_points = []
+
+    for i in range(len(data)):
+
+        delta_y = int(data[i][1] - last_y)
+
+        if (delta_y != 0):
+            x = (data[i][0] - x0) / 1000.0
+            nonzero_derivative_points.append((x, (delta_y)))
+
+        last_y = data[i][1]
+
+    return nonzero_derivative_points
 
 
 #########################

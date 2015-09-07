@@ -11,11 +11,15 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/test1"
+BASE_DIR = "scratch/tune-notune"
 
 PLOT_LATENCIES = True
-OVERLAY_JMX_CPU = True
+OVERLAY_JMX_CPU = False
 OVERLAY_JMX_MEMORY = False
+OVERLAY_JMX_GC = False
+OVERLAY_JMX_GC_TIME = False
+OVERLAY_JMX_ZK_MAXLATENCY = False
+OVERLAY_JMX_ZK_PACKETS = True
 OVERLAY_NMON_NETWORK = False
 OVERLAY_NMON_NETWORK_INTERFACES = ['eth4']
 OVERLAY_NMON_DISK_RATE = False
@@ -25,7 +29,7 @@ OVERLAY_NMON_DISK_DISKS = ['sda']
 PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
 
-EXPERIMENT_DIR = BASE_DIR + "/exp/MMTB-1w19c100ups2000ts60000x";
+EXPERIMENT_DIR = BASE_DIR + "/exp/MMTB-60w1c100ups1000ts60000x";
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
@@ -62,7 +66,7 @@ if PLOT_BOXPLOT:
     plot_labels.append("ALL NODES")
     latencies.append(all_latencies)
 
-    plt.boxplot(latencies)
+    #plt.boxplot(latencies)
     plt.xticks(range(1,len(plot_labels)+1), plot_labels, rotation='vertical')
 
     means = [np.mean(x) for x in latencies]
@@ -93,7 +97,7 @@ if PLOT_LATENCIES:
     #plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
-    plt.ylim(0, 50)
+    plt.ylim(0, 1000)
 
     if OVERLAY_JMX_CPU:
         plt.twinx()
@@ -103,7 +107,7 @@ if PLOT_LATENCIES:
         plotCpuUsage(data, "Kafka node 1", x0=start)
         data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_CPU))
         plotCpuUsage(data, "Kafka node 3", x0=start)
-        plt.ylim(0, 100)
+        plt.ylim(0, 50)
         plt.ylabel("Load average [%]")
 
     if OVERLAY_JMX_MEMORY:
@@ -114,7 +118,60 @@ if PLOT_LATENCIES:
         plotHeapUsage(data, "Kafka node 1", x0=start, used=True)
         data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_MEMORY))
         plotHeapUsage(data, "Kafka node 3", x0=start, used=True)
-        plt.ylabel("Load average [%]")
+        plt.ylabel("Size [MB]")
+
+    if OVERLAY_JMX_ZK_MAXLATENCY:
+        #plt.twinx()
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_2, LOG_TYPE_GENERAL))
+        plotZookeeperMaxLatency(data, "ZK node 2", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_1, LOG_TYPE_GENERAL))
+        plotZookeeperMaxLatency(data, "ZK node 1", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_3, LOG_TYPE_GENERAL))
+        plotZookeeperMaxLatency(data, "ZK node 3", x0=start)
+        #plt.ylabel("Latency [ms]")
+
+    if OVERLAY_JMX_ZK_PACKETS:
+        plt.twinx()
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_2, LOG_TYPE_GENERAL))
+        plotZookeeperPacketsPerInterval(data, "ZK node 2", color="g", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_1, LOG_TYPE_GENERAL))
+        plotZookeeperPacketsPerInterval(data, "ZK node 1", color="r", x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_3, LOG_TYPE_GENERAL))
+        plotZookeeperPacketsPerInterval(data, "ZK node 3", color="b", x0=start)
+
+        plt.ylabel("# of packets per interval")
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    if OVERLAY_JMX_GC:
+
+        plt.twinx()
+
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotGcMoments(data, "Kafka node 2", color = 'g', x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotGcMoments(data, "Kafka node 1", color = 'r', x0=start-100)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotGcMoments(data, "Kafka node 3", color = 'b', x0=start+100)
+        plt.ylabel("Number of GC's performed during measurement interval")
+        plt.ylim(-2,30)
+        plt.axhline(0)
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    if OVERLAY_JMX_GC_TIME:
+
+        plt.twinx()
+
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotTimeSpentInGC(data, "Kafka node 2", color = 'g', x0=start)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotTimeSpentInGC(data, "Kafka node 1", color = 'r', x0=start-100)
+        data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+        plotTimeSpentInGC(data, "Kafka node 3", color = 'b', x0=start+100)
+        plt.ylabel("Time spent in GC during interval")
+        plt.ylim(-2,400)
+        plt.axhline(0)
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+
 
     if OVERLAY_NMON_NETWORK:
         plt.twinx()
@@ -125,7 +182,7 @@ if PLOT_LATENCIES:
             for interface in OVERLAY_NMON_NETWORK_INTERFACES:
                 plotNetworkUsage(data[nodename], nodename, interface, x0=start)
 
-        plt.ylim(0, 10000)
+        plt.ylim(0, 100000)
         plt.ylabel("Rate [KB/s]")
 
     if OVERLAY_NMON_DISK_RATE:
@@ -151,10 +208,10 @@ if PLOT_LATENCIES:
         plt.ylabel("Busy [%]")
 
 
-    ax = plt.gca()  # get the current axes
-    ax.relim()      # make sure all the data fits
-    ax.autoscale()  # auto-scale
-
+    #ax = plt.gca()  # get the current axes
+    #ax.relim()      # make sure all the data fits
+    #ax.autoscale()  # auto-scale
+    plt.xlim(-100, 700)
     plt.legend()
 
 plt.show()
