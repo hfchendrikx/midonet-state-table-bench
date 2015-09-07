@@ -66,7 +66,7 @@ public class ArpMergedMapObserver implements Observer<Tuple2<IPv4Addr, ArpCacheE
             doneLatch.countDown();
         }
 
-        if (!warmedUp) {
+        if (offset >= totalWarmup && !warmedUp) {
             log.debug("Reader warmed up");
             warmedUp = true;
             warmupLatch.countDown();
