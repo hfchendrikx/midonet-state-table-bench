@@ -4,7 +4,9 @@ from os.path import isfile, join, isdir
 import re
 from numpy import sqrt
 
-MMTB_regexp = 'MMTB-(\d)w(\d+)c(\d+)ups(\d+)ts(\d+)x'
+MMTB_regexp = '^MMTB-(\d)w(\d+)c(\d+)ups(\d+)ts(\d+)x$'
+#MultiMMTB-5mpw5mpr1maps100ups1000ts30000x
+MultiMMTB_regexp = '^MultiMMTB-(\d+)mpw(\d+)mpr(\d+)maps(\d+)ups(\d+)ts(\d+)x$'
 
 def processDataFile(filename):
     try:
@@ -35,7 +37,7 @@ def processOldSummaryFile(filename):
         content = content[1:]
         content = [float((x.split('='))[-1]) for x in content]
 
-    return {'mean': float(content[0]), 'stddev': float(content[1]), '95th': float(content[2]), 'file': filename}
+    return {'mean': float(content[0]), 'stddev': float(content[1]), '95th': float(content[2]), '9999th': float(content[4]), 'file': filename}
 
 
 def readOldExperimentSummaries(directory):
@@ -50,7 +52,7 @@ def readOldExperimentSummaries(directory):
     return summaries
 
 def calculateOverallExperimentSummary(summaries):
-    grandSummary = {'mean':0,'stddev':0,'95thmax': 0}
+    grandSummary = {'mean':0,'stddev':0,'95thmax': 0, '9999thmax': 0}
     meanAccumulator = 0.0
     nodeCount = 0
     pooledStdDev = 0.0
@@ -61,6 +63,9 @@ def calculateOverallExperimentSummary(summaries):
 
         if (grandSummary['95thmax'] < summaries[nodeName]['95th']):
             grandSummary['95thmax'] = summaries[nodeName]['95th']
+
+        if (grandSummary['9999thmax'] < summaries[nodeName]['9999th']):
+            grandSummary['9999thmax'] = summaries[nodeName]['9999th']
 
         nodeCount = nodeCount + 1
 
@@ -115,9 +120,21 @@ def listExperiments(directory):
             parts = re.match(MMTB_regexp, expirementTag)
             if parts:
                 experiments[expirementTag] = {
+                    'type': "MMTB",
                     'writers': int(parts.group(1)),
                     'readers': int(parts.group(2)),
                     'write_rate' : int(parts.group(3))
+                }
+
+            parts = re.match(MultiMMTB_regexp, expirementTag)
+            if parts:
+                experiments[expirementTag] = {
+                    'type': "MultiMMTB",
+                    'maps_per_writer': int(parts.group(1)),
+                    'maps_per_reader': int(parts.group(2)),
+                    'maps' : int(parts.group(3)),
+                    'updates_per_second' : int(parts.group(4)),
+                    'table_size' : int(parts.group(5))
                 }
 
     return experiments

@@ -11,25 +11,25 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/300-maps-100wps"
+BASE_DIR = "scratch/ssd-multi-fail"
 
 PLOT_LATENCIES = True
-OVERLAY_JMX_CPU = True
+OVERLAY_JMX_CPU = False
 OVERLAY_JMX_MEMORY = False
 OVERLAY_JMX_GC = False
 OVERLAY_JMX_GC_TIME = False
 OVERLAY_JMX_ZK_MAXLATENCY = False
-OVERLAY_JMX_ZK_PACKETS = False
+OVERLAY_JMX_ZK_PACKETS = True
 OVERLAY_NMON_NETWORK = False
 OVERLAY_NMON_NETWORK_INTERFACES = ['eth0']
 OVERLAY_NMON_DISK_RATE = False
 OVERLAY_NMON_DISK_BUSY = False
-OVERLAY_NMON_DISK_DISKS = ['sda']
+OVERLAY_NMON_DISK_DISKS = ['sdb']
 
 PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
 
-EXPERIMENT_DIR = BASE_DIR + "/exp/exp";
+EXPERIMENT_DIR = BASE_DIR + "/exp/MultiMMTB-10mpw10mpr300maps500ups1000ts150000x";
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
@@ -92,9 +92,9 @@ if PLOT_LATENCIES:
 
     for x in timeSeriesLatencies:
         if not x == 'start':
-            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+            pass#plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
 
-    #plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
+    plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
     plt.ylim(0, 1000)
