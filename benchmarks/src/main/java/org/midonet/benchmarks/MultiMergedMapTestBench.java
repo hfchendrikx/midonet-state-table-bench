@@ -63,10 +63,6 @@ public class MultiMergedMapTestBench extends TestBench {
         this.worldRank = worldRank;
     }
 
-    public void setBookkeeper(Bookkeeper bookkeeper) {
-        this.bookkeeper = bookkeeper;
-    }
-
     public void configureWithConfig(Config config) {
         this.numberOfMaps = config.getInt("numberOfMaps");
         this.writeRatePerMap = config.getInt("writeRatePerMap");
@@ -245,11 +241,6 @@ public class MultiMergedMapTestBench extends TestBench {
             }
         }
 
-        log.debug("Gathering all nodes for start of test cycle");
-        try { this.barrier(); } catch (MPIException e) {
-            log.error("Error during waiting on barrier before nodeTestCycle", e);
-        }
-
         this.nodeTestCycle(node);
     }
 
@@ -300,7 +291,9 @@ public class MultiMergedMapTestBench extends TestBench {
             bench.configureWithConfig(configuration.getConfig("MultiMergedMapTestBench"));
             bench.run();
 
-
+            /**
+             * Root process prints the summary of all nodes on stdout
+             */
             if (worldRank == 0) {
                 List<String> files = bookkeeper.getPathsToAllLogs("summary");
                 for (String file : files) {

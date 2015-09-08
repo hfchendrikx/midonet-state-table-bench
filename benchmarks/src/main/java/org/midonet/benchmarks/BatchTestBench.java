@@ -76,6 +76,9 @@ public class BatchTestBench extends MPIBenchApp {
             case "MergedMapTestBench":
                 this.runMergedMapTestBench();
                 break;
+            case "MultiMergedMapTestBench":
+                this.runMultiMergedMapTestBench();
+                break;
             default:
                 log.warn("Unknown benchmark type '{}' found in run configuration",benchmarkType);
                 break;
@@ -86,7 +89,17 @@ public class BatchTestBench extends MPIBenchApp {
         MergedMapTestBench testBench = new MergedMapTestBench(mpiSize, mpiRank);
         testBench.updateConfigurationWithConfig(batchConfiguration.getConfig("defaultConfig.MergedMapTestBench"));
         testBench.updateConfigurationWithConfig(currentRunConfiguration.getConfig("MergedMapTestBench"));
+        runTestBench(testBench);
+    }
 
+    private void runMultiMergedMapTestBench() {
+        MultiMergedMapTestBench testBench = new MultiMergedMapTestBench(mpiSize, mpiRank);
+        testBench.updateConfigurationWithConfig(batchConfiguration.getConfig("defaultConfig.MultiMergedMapTestBench"));
+        testBench.updateConfigurationWithConfig(currentRunConfiguration.getConfig("MultiMergedMapTestBench"));
+        runTestBench(testBench);
+    }
+
+    private void runTestBench(TestBench testBench) {
         Bookkeeper bookkeeper = new Bookkeeper(
                 batchConfiguration.getString("Bookkeeper.basePath"),
                 mpiHostName + "-" + mpiRank,

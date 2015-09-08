@@ -35,7 +35,7 @@ import java.util.Scanner;
  * R  R  R         R  R  R
  *
  */
-public class MergedMapTestBench extends MPIBenchApp {
+public class MergedMapTestBench extends TestBench {
 
     int worldSize;
     int worldRank;
@@ -48,7 +48,6 @@ public class MergedMapTestBench extends MPIBenchApp {
     int readersPerMap;
     int tableSize = 1000;
     String mapBaseName;
-    Bookkeeper bookkeeper;
 
     /**
      *
@@ -97,10 +96,6 @@ public class MergedMapTestBench extends MPIBenchApp {
 
         this.worldSize = worldSize;
         this.worldRank = worldRank;
-    }
-
-    public void setBookkeeper(Bookkeeper bookkeeper) {
-        this.bookkeeper = bookkeeper;
     }
 
     public void configureWithConfig(Config config) {
@@ -164,35 +159,11 @@ public class MergedMapTestBench extends MPIBenchApp {
         return output.toString();
     }
 
-    private void generateAndDistributeMapBaseName() {
-        if (this.isMpiRoot()) {
-            long changingValue = System.currentTimeMillis();
-            try {
-                this.broadcast(new long[]{changingValue}, 1, 0);
-            } catch (MPIException e) {
-                log.error("Error during broadcast of mapBaseName", e);
-            }
-
-            mapBaseName = "auto" + changingValue;
-        } else {
-            long value = 0;
-
-            try {
-                long[] valueArray = this.broadcast(new long[]{}, 1, 0);
-                value = valueArray[0];
-            } catch (MPIException e) {
-                log.error("Error during receive of mapBaseName", e);
-            }
-
-            mapBaseName = "auto" + value;
-        }
-    }
-
     public void run() throws NotEnoughNodesAvailableException {
 
 
         if (mapBaseName.equals("")) {
-            this.generateAndDistributeMapBaseName();
+            mapBaseName = this.generateAndDistributeMapBaseName();
         }
 
         bookkeeper.setHostname(mpiHostName + '-' + mpiRank);
@@ -262,60 +233,7 @@ public class MergedMapTestBench extends MPIBenchApp {
             }
         }
 
-
-        /**
-         * Start of testing
-         * All exceptions need to be caught, because if one node misses a
-         * barrier the whole test gets stuck.
-         */
-
-        log.debug("Setting up benchmark");
-        try {
-            node.setup();
-        } catch (Exception e) {
-            log.error("Exception during node.setup()", e);
-        }
-
-        log.debug("Awaiting setup of other nodes");
-        try {
-            this.barrier();
-        } catch (MPIException e) {
-            log.error("Error during waiting on barrier after node setup", e);
-        }
-
-        log.debug("Starting main part of benchmark");
-        try {
-            node.run();
-        } catch (Exception e) {
-            log.error("Exception during node.run()", e);
-        }
-
-        try {
-            this.barrier();
-        } catch (MPIException e) {
-            log.error("Error during waiting on barrier after main part of benchmark", e);
-        }
-
-        try {
-            node.shutdown();
-        } catch (Exception e) {
-            log.error("Exception during node.shutdown()", e);
-        }
-
-        try {
-            node.postProcessResults(bookkeeper);
-        } catch (Exception e) {
-            log.error("Exception during node.postProcessResults()", e);
-        }
-
-        try {
-            this.barrier();
-        } catch (MPIException e) {
-            log.error("Error during waiting on barrier after postproccessing of benchmark", e);
-        }
-
-
-        log.info("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
+        this.nodeTestCycle(node);
     }
 
     /**

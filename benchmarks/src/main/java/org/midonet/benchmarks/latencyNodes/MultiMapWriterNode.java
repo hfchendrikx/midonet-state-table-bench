@@ -6,6 +6,8 @@ import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Observable;
 import java.util.Random;
@@ -14,6 +16,10 @@ import java.util.Random;
  * Created by huub on 7-9-15.
  */
 public class MultiMapWriterNode extends TimestampedNode {
+
+
+    private static final Logger log =
+            LoggerFactory.getLogger(MultiMapWriterNode.class);
 
     MergedMap<IPv4Addr, ArpCacheEntry>[] maps;
     KafkaBus<IPv4Addr, ArpCacheEntry>[] busses;

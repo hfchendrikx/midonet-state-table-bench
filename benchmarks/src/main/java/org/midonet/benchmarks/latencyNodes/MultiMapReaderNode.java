@@ -8,6 +8,8 @@ import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.midonet.util.reactivex.AwaitableObserver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.*;
 import rx.observers.TestObserver;
 import scala.Tuple2;
@@ -22,6 +24,9 @@ import java.util.concurrent.CountDownLatch;
  * Created by huub on 7-9-15.
  */
 public class MultiMapReaderNode extends TimestampedNode {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(MultiMapReaderNode.class);
 
     MergedMap<IPv4Addr, ArpCacheEntry>[] maps;
     KafkaBus<IPv4Addr, ArpCacheEntry>[] busses;
@@ -73,7 +78,7 @@ public class MultiMapReaderNode extends TimestampedNode {
         try {
             warmupLatch.await();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("Await on warmupLatch interrupted", e);
         }
     }
 
@@ -83,13 +88,12 @@ public class MultiMapReaderNode extends TimestampedNode {
         try {
             finishedLatch.await();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error("Await on finishedLatch interrupted", e);
         }
     }
 
     @Override
     public void shutdown() {
-
         for(int i = 0;i<maps.length;i++) {
             this.subscriptions[i].unsubscribe();
             this.busses[i].shutdown();

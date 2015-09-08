@@ -1,5 +1,6 @@
 package org.midonet.benchmarks;
 
+import com.typesafe.config.Config;
 import mpi.MPIException;
 import org.midonet.benchmarks.latencyNodes.Bookkeeper;
 import org.midonet.benchmarks.latencyNodes.TestNode;
@@ -28,8 +29,11 @@ public abstract class TestBench extends MPIBenchApp {
     public void setBookkeeper(Bookkeeper bookkeeper) {
         this.bookkeeper = bookkeeper;
     }
+
     abstract public String testInformation();
     abstract public String suggestedTestTag();
+    abstract public void configureWithConfig(Config config);
+    abstract public void updateConfigurationWithConfig(Config config);
 
     protected String generateAndDistributeMapBaseName() {
         String mapBaseName = "";
@@ -60,6 +64,12 @@ public abstract class TestBench extends MPIBenchApp {
     }
 
     protected void nodeTestCycle(TestNode node) {
+
+        log.debug("Gathering all nodes for start of test cycle");
+        try { this.barrier(); } catch (MPIException e) {
+            log.error("Error during waiting on barrier before nodeTestCycle", e);
+        }
+
         /**
          * Start of testing
          * All exceptions need to be caught, because if one node misses a
