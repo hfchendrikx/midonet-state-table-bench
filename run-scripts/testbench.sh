@@ -1,8 +1,8 @@
 #!/bin/bash
 
 echo "Starting slurm..."
-sudo adduser --disabled-password --gecos "" munge
-sudo adduser --disabled-password --gecos "" slurm
+sudo adduser --disabled-password --gecos "" munge || true
+sudo adduser --disabled-password --gecos "" slurm || true
 sudo chown munge:munge /home/munge
 sudo chown slurm:slurm /home/slurm
 sudo chown munge:munge /var/lib/munge
