@@ -13,12 +13,12 @@ echo "ID Of this zookeeper server is $ZOOKEEPER_NODE_ID"
 echo "Zookeeper servers configured: ${ZOOKEEPER_NODES[@]}"
 
 # stop zookeeper
-#sudo $ZK_DIR/bin/zkServer.sh stop
+sudo $ZK_DIR/bin/zkServer.sh stop
 
 # clear zookeeper logs
-#sudo rm -rf $LOG_DIR
-#sudo mkdir $LOG_DIR
-#sudo rm -rf $CONFIG_DIR/myid
+sudo rm -rf $LOG_DIR
+sudo mkdir $LOG_DIR
+sudo rm -rf $CONFIG_DIR/myid
 
 # edit the zookeeper config
 for ((i=0; i<${#ZOOKEEPER_NODES[@]}; i++));

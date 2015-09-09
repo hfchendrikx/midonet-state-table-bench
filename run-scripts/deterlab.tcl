@@ -1,7 +1,7 @@
 set ns [new Simulator]
 source tb_compat.tcl
 
-proc cluster_startup_command {start_zookeeper start_kafka zookeeper_id kafka_id zookeeper_nodes logfile} {
+proc cluster_startup_command {start_zookeeper start_kafka zookeeper_id kafka_id init_ssd zookeeper_nodes  logfile} {
   # $1 contains the number of testbench nodes
   # $2 contains the number of cluster nodes
   # $3 use oracle jvm
@@ -9,20 +9,21 @@ proc cluster_startup_command {start_zookeeper start_kafka zookeeper_id kafka_id 
   # $5 start kafka on this node
   # $6 Zookeeper ID of this node
   # $7 Kafka ID of this node
-  # $8...n (rest are the addresses of the zookeeper nodes)
+  # $8 Init ssd
+  # $9...n (rest are the addresses of the zookeeper nodes)
   global nrbenchnodes
   global nrclusternodes
   global use_oracle_jdk
-  return "/proj/midonet/lattest/startup-cluster.sh $nrbenchnodes $nrclusternodes $use_oracle_jdk $start_zookeeper $start_kafka $zookeeper_id $kafka_id $zookeeper_nodes >& /proj/midonet/lattest/startlog/$logfile.log"
+  return "/proj/midonet/lattest/startup-cluster.sh $nrbenchnodes $nrclusternodes $use_oracle_jdk $start_zookeeper $start_kafka $zookeeper_id $kafka_id $init_ssd $zookeeper_nodes >& /proj/midonet/lattest/startlog/$logfile.log"
 }
 
 ###
 ###REMEMBER TO CHANGE THE SLURM CONFIGURATION IF YOU CHANGE THE NUMBER OF BENCH NODES
 ###
-set nrbenchnodes 2
-set nrclusternodes 6
-set seperate_zookeeper_nodes 1
 set use_oracle_jdk 1
+set nrbenchnodes 2
+set nrclusternodes 6 #Zookeeper + kafka nodes
+set seperate_zookeeper_nodes 1
 
 # Cluster nodes
 set clusternode1 [$ns node]
@@ -62,17 +63,15 @@ tb-set-sync-server $clusternode1
 ###
 # Clusternodes running zookeepr and kafka
 ###
+set cluster_tb [list]
+set zoo_tb [list]
 
 #Put kafka tars on the cluster nodes
-tb-set-node-tarfiles $clusternode1 /usr/share/kafka /proj/midonet/tarfiles/kafka_2.10-0.8.2.1.tgz
-tb-set-node-tarfiles $clusternode2 /usr/share/kafka /proj/midonet/tarfiles/kafka_2.10-0.8.2.1.tgz
-tb-set-node-tarfiles $clusternode3 /usr/share/kafka /proj/midonet/tarfiles/kafka_2.10-0.8.2.1.tgz
+lappend cluster_tb /usr/share/kafka /proj/midonet/tarfiles/kafka_2.10-0.8.2.1.tgz
 
 #Put java tars on all cluster nodes
 if {$use_oracle_jdk} {
-  tb-set-node-tarfiles $clusternode1 /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
-  tb-set-node-tarfiles $clusternode2 /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
-  tb-set-node-tarfiles $clusternode3 /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
+  lappend cluster_tb /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
   if {$seperate_zookeeper_nodes} {
     tb-set-node-tarfiles $zoo1 /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
     tb-set-node-tarfiles $zoo2 /opt/java /proj/midonet/tarfiles/jdk-7u79-linux-x64.tar.gz
@@ -80,17 +79,23 @@ if {$use_oracle_jdk} {
   }
 }
 
+eval tb-set-node-tarfiles $clusternode1 $cluster_tb
+eval tb-set-node-tarfiles $clusternode2 $cluster_tb
+eval tb-set-node-tarfiles $clusternode3 $cluster_tb
+
+
+
 if {$seperate_zookeeper_nodes} {
-  tb-set-node-startcmd $clusternode1 [cluster_startup_command 0 1 0 1 "zoo1 zoo2 zoo3" "clusternode1"]
-  tb-set-node-startcmd $clusternode2 [cluster_startup_command 0 1 0 2 "zoo1 zoo2 zoo3" "clusternode2"]
-  tb-set-node-startcmd $clusternode3 [cluster_startup_command 0 1 0 3 "zoo1 zoo2 zoo3" "clusternode3"]
-  tb-set-node-startcmd $zoo1 [cluster_startup_command 1 0 1 0 "zoo1 zoo2 zoo3" "zoo1"]
-  tb-set-node-startcmd $zoo2 [cluster_startup_command 1 0 2 0 "zoo1 zoo2 zoo3" "zoo2"]
-  tb-set-node-startcmd $zoo3 [cluster_startup_command 1 0 3 0 "zoo1 zoo2 zoo3" "zoo3"]
+  tb-set-node-startcmd $clusternode1 [cluster_startup_command 0 1 0 1 1 "zoo1 zoo2 zoo3" "clusternode1"]
+  tb-set-node-startcmd $clusternode2 [cluster_startup_command 0 1 0 2 1 "zoo1 zoo2 zoo3" "clusternode2"]
+  tb-set-node-startcmd $clusternode3 [cluster_startup_command 0 1 0 3 1 "zoo1 zoo2 zoo3" "clusternode3"]
+  tb-set-node-startcmd $zoo1 [cluster_startup_command 1 0 1 0 0 "zoo1 zoo2 zoo3" "zoo1"]
+  tb-set-node-startcmd $zoo2 [cluster_startup_command 1 0 2 0 0 "zoo1 zoo2 zoo3" "zoo2"]
+  tb-set-node-startcmd $zoo3 [cluster_startup_command 1 0 3 0 0 "zoo1 zoo2 zoo3" "zoo3"]
 } else {
-  tb-set-node-startcmd $clusternode1 [cluster_startup_command 1 1 1 1 "clusternode1 clusternode2 clusternode3" "clusternode1"]
-  tb-set-node-startcmd $clusternode2 [cluster_startup_command 1 1 2 2 "clusternode1 clusternode2 clusternode3" "clusternode2"]
-  tb-set-node-startcmd $clusternode3 [cluster_startup_command 1 1 3 3 "clusternode1 clusternode2 clusternode3" "clusternode3"]
+  tb-set-node-startcmd $clusternode1 [cluster_startup_command 1 1 1 1 1 "clusternode1 clusternode2 clusternode3" "clusternode1"]
+  tb-set-node-startcmd $clusternode2 [cluster_startup_command 1 1 2 2 1 "clusternode1 clusternode2 clusternode3" "clusternode2"]
+  tb-set-node-startcmd $clusternode3 [cluster_startup_command 1 1 3 3 1 "clusternode1 clusternode2 clusternode3" "clusternode3"]
 }
 
 

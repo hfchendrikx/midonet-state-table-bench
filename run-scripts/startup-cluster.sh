@@ -6,7 +6,8 @@
 # $5 start kafka on this node
 # $6 Zookeeper ID of this node
 # $7 Kafka ID of this node
-# $8...n (rest are the addresses of the zookeeper nodes)
+# $8 Init ssd
+# $9...n (rest are the addresses of the zookeeper nodes)
 
 MAIN_DIR=/proj/midonet/lattest
 
@@ -19,12 +20,14 @@ START_KAFKA=$5
 ZOOKEEPER_SERVER_ID=$6
 KAFKA_SERVER_ID=$7
 INIT_SSD=$8
-ZOOKEEPER_NODES=(${PARAMS[@]:9})
+ZOOKEEPER_NODES=(${PARAMS[@]:8})
 
 
 CLUSTERNODES_AT_BARRIER=`expr $NR_CLUSTER_NODES - 1`
 
 set -e
+
+cd $MAIN_DIR
 
 echo -e "\n"
 echo -e "######################################\n"
@@ -42,7 +45,7 @@ if [ $START_ZOOKEEPER -eq 1 ]; then
   echo -e "######################################\n"
   echo -e "\n"
 
-  $MAIN_DIR/setupZK.sh $SERVER_ID "${ZOOKEEPER_NODES[@]}"
+  $MAIN_DIR/setupZK.sh $ZOOKEEPER_SERVER_ID "${ZOOKEEPER_NODES[@]}"
 fi
 
 if [ $INIT_SSD -eq 1 ]; then
