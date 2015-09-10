@@ -75,6 +75,9 @@ public class MPIBenchApp {
 
     }
 
+    /*
+     * @return Time in micro seconds
+     */
     public static long getTime() {
         try {
             return (long)(MPI.wtime() * 1000000);

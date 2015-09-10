@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Observable;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by huub on 7-9-15.
@@ -28,6 +30,7 @@ public class MultiMapWriterNode extends TimestampedNode {
     int writeRate;
     IPv4Addr[] ipSet;
     Random random;
+    int noSleepCounter = 0;
 
     public MultiMapWriterNode(
             MergedMap<IPv4Addr, ArpCacheEntry>[] maps,
@@ -77,6 +80,9 @@ public class MultiMapWriterNode extends TimestampedNode {
 
         int written = 0;
         int i = 0;
+        boolean noSleep = false;
+        long intervalDurationNanos = (long)(1000000000 / writeRate);
+        long wokeUpAt = System.nanoTime();
 
         while (written < benchmarkWrites) {
 
@@ -87,16 +93,30 @@ public class MultiMapWriterNode extends TimestampedNode {
                 );
             }
 
+            /*
             try {
-                //Not a very precise throttling like this
-                Thread.sleep((long)(1000 / writeRate));
+                Thread.sleep(1000 / writeRate);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            */
+
+            noSleep = true;
+            while ((System.nanoTime() - wokeUpAt) < (intervalDurationNanos)) {
+                LockSupport.parkNanos(intervalDurationNanos - (System.nanoTime() - wokeUpAt));
+                noSleep = false;
+            }
+
+            if (noSleep) {
+                wokeUpAt = System.nanoTime();
+                noSleepCounter++;
+            } else {
+                wokeUpAt += intervalDurationNanos;
+            }
+
 
             written++;
         }
-
     }
 
     @Override
@@ -108,6 +128,11 @@ public class MultiMapWriterNode extends TimestampedNode {
 
     @Override
     public String postProcessResults(Bookkeeper bookkeeper) {
+        if (noSleepCounter > 0) {
+            log.info("Skipped sleep " + noSleepCounter + " times");
+        }
+        double benchmarkDurationSeconds = (endBenchmark - startBenchmark) / 1000.0;
+        log.info("Average write rate: " + (benchmarkWrites / benchmarkDurationSeconds) );
         super.postProcessResults(bookkeeper);
         return "";
     }

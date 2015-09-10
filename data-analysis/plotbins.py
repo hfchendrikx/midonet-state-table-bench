@@ -11,7 +11,7 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/ssd-multi-fail"
+BASE_DIR = "scratch/oracle-seperated_cluster-500maps500ups"
 
 PLOT_LATENCIES = True
 OVERLAY_JMX_CPU = False
@@ -19,8 +19,8 @@ OVERLAY_JMX_MEMORY = False
 OVERLAY_JMX_GC = False
 OVERLAY_JMX_GC_TIME = False
 OVERLAY_JMX_ZK_MAXLATENCY = False
-OVERLAY_JMX_ZK_PACKETS = True
-OVERLAY_NMON_NETWORK = False
+OVERLAY_JMX_ZK_PACKETS = False
+OVERLAY_NMON_NETWORK = True
 OVERLAY_NMON_NETWORK_INTERFACES = ['eth0']
 OVERLAY_NMON_DISK_RATE = False
 OVERLAY_NMON_DISK_BUSY = False
@@ -29,7 +29,7 @@ OVERLAY_NMON_DISK_DISKS = ['sdb']
 PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
 
-EXPERIMENT_DIR = BASE_DIR + "/exp/MultiMMTB-10mpw10mpr300maps500ups1000ts150000x";
+EXPERIMENT_DIR = BASE_DIR + "/exp/MultiMMTB-10mpw10mpr500maps500ups1000ts150000x";
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
@@ -97,7 +97,7 @@ if PLOT_LATENCIES:
     plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
-    plt.ylim(0, 1000)
+    #plt.ylim(0, 1000)
 
     if OVERLAY_JMX_CPU:
         plt.twinx()

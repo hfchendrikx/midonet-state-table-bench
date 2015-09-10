@@ -72,6 +72,7 @@ def calculateOverallExperimentSummary(summaries):
     grandSummary['mean'] = meanAccumulator / nodeCount / 1000.0
     grandSummary['stddev'] = sqrt(pooledStdDev / nodeCount) / 1000.0
     grandSummary['95thmax'] = grandSummary['95thmax'] / 1000.0
+    grandSummary['9999thmax'] = grandSummary['9999thmax'] / 1000.0
 
     return grandSummary
 
