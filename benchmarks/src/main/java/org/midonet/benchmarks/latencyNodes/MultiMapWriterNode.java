@@ -9,6 +9,7 @@ import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintStream;
 import java.util.Observable;
 import java.util.Random;
 import java.util.concurrent.locks.Lock;
@@ -128,12 +129,18 @@ public class MultiMapWriterNode extends TimestampedNode {
 
     @Override
     public String postProcessResults(Bookkeeper bookkeeper) {
+        super.postProcessResults(bookkeeper);
+
         if (noSleepCounter > 0) {
             log.info("Skipped sleep " + noSleepCounter + " times");
         }
+
         double benchmarkDurationSeconds = (endBenchmark - startBenchmark) / 1000.0;
-        log.info("Average write rate: " + (benchmarkWrites / benchmarkDurationSeconds) );
-        super.postProcessResults(bookkeeper);
+
+        PrintStream logFile = bookkeeper.getFileWriter("write-summary");
+        logFile.println("skippedsleep=" + this.noSleepCounter);
+        logFile.println("avgwriterate=" + (benchmarkWrites / benchmarkDurationSeconds));
+
         return "";
     }
 }
