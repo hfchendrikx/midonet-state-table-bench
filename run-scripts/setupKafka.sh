@@ -31,6 +31,9 @@ sudo chmod 444 $CONFIG_DIR/log4j.properties
 sudo sed -i -r 's/zookeeper.connect=.*/zookeeper.connect='"$ZOOKEEPER_CONNECTION_STRING"'/' $CONFIG_DIR/server.properties
 sudo sed -i -r "s/broker.id=.*/broker.id=$KAFKA_BROKER_ID/" $CONFIG_DIR/server.properties
 
+#Set open file limit
+ulimit -n 500000
+
 export KAFKA_HEAP_OPTS="-Xmx3G -Xms3G"
 
 sudo JMX_PORT=9996 $KAFKA_DIR/bin/kafka-server-start.sh $CONFIG_DIR/server.properties

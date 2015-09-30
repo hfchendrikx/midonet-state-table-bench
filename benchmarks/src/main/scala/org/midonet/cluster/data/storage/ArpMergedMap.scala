@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit
 import kafka.serializer.{Decoder, StringDecoder}
 import kafka.utils.VerifiableProperties
 import org.I0Itec.zkclient.ZkClient
-import org.apache.kafka.common.serialization.{Serializer, StringSerializer}
+import org.apache.kafka.common.serialization.{Deserializer, Serializer, StringSerializer}
 import org.midonet.midolman.state.ArpCacheEntry
 import org.midonet.packets.IPv4Addr
 import org.midonet.util.reactivex.AwaitableObserver

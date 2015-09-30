@@ -25,6 +25,8 @@ ZOOKEEPER_NODES=(${PARAMS[@]:8})
 
 CLUSTERNODES_AT_BARRIER=`expr $NR_CLUSTER_NODES - 1`
 
+ulimit -a
+
 set -e
 
 cd $MAIN_DIR
@@ -68,7 +70,7 @@ if [ $START_KAFKA -eq 1 ]; then
   echo -e "######################################\n"
   echo -e "\n"
 
-  $MAIN_DIR/setupKafka.sh $KAFKA_SERVER_ID "${ZOOKEEPER_NODES[@]}" &
+  sudo bash $MAIN_DIR/setupKafka.sh $KAFKA_SERVER_ID "${ZOOKEEPER_NODES[@]}" &
 fi
 
 echo -e "\n"
@@ -79,6 +81,6 @@ sudo chmod 777 /var/log/nmon
 nmon -f -s 10 -c 10000000 -m /var/log/nmon 
 
 if [ "$ZOOKEEPER_SERVER_ID" = "1" ]; then
-	echo -e "Creating and awaiting barrier...\n"
+	echo -e "Creating and awaiting barrier for $NR_TESTBENCH_NODES bench nodes...\n"
        /usr/testbed/bin/emulab-sync -i $NR_TESTBENCH_NODES -n benchbarrier
 fi

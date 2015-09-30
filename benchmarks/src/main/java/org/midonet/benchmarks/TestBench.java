@@ -1,6 +1,7 @@
 package org.midonet.benchmarks;
 
 import com.typesafe.config.Config;
+import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.benchmarks.latencyNodes.Bookkeeper;
 import org.midonet.benchmarks.latencyNodes.TestNode;
@@ -25,6 +26,8 @@ public abstract class TestBench extends MPIBenchApp {
 
     private static final Logger log =
             LoggerFactory.getLogger(TestBench.class);
+    private static final Logger status_log =
+            LoggerFactory.getLogger("status");
 
     public void setBookkeeper(Bookkeeper bookkeeper) {
         this.bookkeeper = bookkeeper;
@@ -63,6 +66,43 @@ public abstract class TestBench extends MPIBenchApp {
         return mapBaseName;
     }
 
+    protected void logStatusMessage(String message) {
+        log.debug(message);
+
+        if (this.isMpiRoot()) {
+            status_log.info(message);
+        }
+    }
+
+    protected void throttledSetup(TestNode node) {
+        int nodeThatCanStartWarmup = 0;
+
+        while (nodeThatCanStartWarmup < mpiSize) {
+            if (nodeThatCanStartWarmup == mpiRank) {
+                status_log.info("Node " + mpiRank + " setup begin");
+                node.setup();
+                status_log.info("Node " + mpiRank + " setup end");
+            }
+
+            try {
+                MPI.COMM_WORLD.barrier();
+
+                if (isMpiRoot()) {
+                    nodeThatCanStartWarmup++;
+                    this.broadcast(0, nodeThatCanStartWarmup);
+                } else {
+                    nodeThatCanStartWarmup = this.broadcast(0, 0);
+                }
+            } catch (MPIException e) {
+                log.error("MPIException during throttled setup broadcast/barrier (rank=" + mpiRank + ")", e);
+                throw new RuntimeException("Unable to continue due to MPIException at setup");
+            }
+
+        }
+
+
+    }
+
     protected void nodeTestCycle(TestNode node) {
 
         log.debug("Gathering all nodes for start of test cycle");
@@ -76,21 +116,21 @@ public abstract class TestBench extends MPIBenchApp {
          * barrier the whole test gets stuck.
          */
 
-        log.debug("Setting up benchmark");
+        logStatusMessage("Setting up benchmark");
         try {
-            node.setup();
+            this.throttledSetup(node);
         } catch (Exception e) {
             log.error("Exception during node.setup()", e);
         }
 
-        log.debug("Awaiting setup of other nodes");
+        logStatusMessage("Awaiting setup of other nodes");
         try {
             this.barrier();
         } catch (MPIException e) {
             log.error("Error during waiting on barrier after node setup", e);
         }
 
-        log.debug("Starting main part of benchmark");
+        logStatusMessage("Starting main part of benchmark");
         try {
             node.run();
         } catch (Exception e) {
@@ -103,8 +143,10 @@ public abstract class TestBench extends MPIBenchApp {
             log.error("Error during waiting on barrier after main part of benchmark", e);
         }
 
+        logStatusMessage("Shutting down");
         try {
             node.shutdown();
+            status_log.info("Node " + mpiRank + " shutdown successful");
         } catch (Exception e) {
             log.error("Exception during node.shutdown()", e);
         }
@@ -121,8 +163,7 @@ public abstract class TestBench extends MPIBenchApp {
             log.error("Error during waiting on barrier after postproccessing of benchmark", e);
         }
 
-
-        log.info("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
+        logStatusMessage("Finished on " + this.mpiHostName + " (" + worldRank + "," + worldSize + ")");
     }
 
     public abstract void run() throws NotEnoughNodesAvailableException;

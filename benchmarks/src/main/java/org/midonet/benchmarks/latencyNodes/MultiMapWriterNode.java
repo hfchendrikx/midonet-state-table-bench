@@ -1,6 +1,7 @@
 package org.midonet.benchmarks.latencyNodes;
 
 import mpi.MPI;
+import org.midonet.benchmarks.MultiMergedMapTestBench;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
@@ -78,6 +79,12 @@ public class MultiMapWriterNode extends TimestampedNode {
 
     @Override
     public void timestampedRun() {
+        try {
+            //Delay every writernode with rank * 100us
+            LockSupport.parkNanos(MPI.COMM_WORLD.getRank() * 100000);
+        } catch (Exception e) {
+            log.error("Exception during delay sleep in writer node", e);
+        }
 
         int written = 0;
         int i = 0;
@@ -122,6 +129,16 @@ public class MultiMapWriterNode extends TimestampedNode {
 
     @Override
     public void shutdown() {
+
+        try {
+            //There is one node that can have a shorter maps.length than the rest of the nodes
+            //for now this is ok
+            long usPerNode = MultiMergedMapTestBench.MAP_SHUTDOWN_THROTTLE_NS_PER_MAP * maps.length;
+            LockSupport.parkNanos(MPI.COMM_WORLD.getRank() * usPerNode);
+        } catch (Exception e) {
+            log.error("Exception during delay sleep in shutdown", e);
+        }
+
         for (KafkaBus bus : busses) {
             bus.shutdown();
         }

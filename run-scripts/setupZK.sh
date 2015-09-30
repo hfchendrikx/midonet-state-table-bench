@@ -12,10 +12,10 @@ ZOOKEEPER_NODES=(${PARAMS[@]:1})
 echo "ID Of this zookeeper server is $ZOOKEEPER_NODE_ID"
 echo "Zookeeper servers configured: ${ZOOKEEPER_NODES[@]}"
 
+#Restart zookeeepr
 # stop zookeeper
 sudo $ZK_DIR/bin/zkServer.sh stop
 
-# clear zookeeper logs
 sudo rm -rf $LOG_DIR
 sudo mkdir $LOG_DIR
 sudo rm -rf $CONFIG_DIR/myid

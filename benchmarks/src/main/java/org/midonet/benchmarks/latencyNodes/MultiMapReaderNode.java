@@ -1,5 +1,7 @@
 package org.midonet.benchmarks.latencyNodes;
 
+import mpi.MPI;
+import org.midonet.benchmarks.MultiMergedMapTestBench;
 import org.midonet.benchmarks.StatUtils;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
@@ -19,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by huub on 7-9-15.
@@ -94,6 +97,16 @@ public class MultiMapReaderNode extends TimestampedNode {
 
     @Override
     public void shutdown() {
+
+        try {
+            //There is one node that can have a shorter maps.length than the rest of the nodes
+            //for now this is ok
+            long usPerNode = MultiMergedMapTestBench.MAP_SHUTDOWN_THROTTLE_NS_PER_MAP * maps.length;
+            LockSupport.parkNanos(MPI.COMM_WORLD.getRank() * usPerNode);
+        } catch (Exception e) {
+            log.error("Exception during delay sleep in shutdown", e);
+        }
+
         for(int i = 0;i<maps.length;i++) {
             this.subscriptions[i].unsubscribe();
             this.busses[i].shutdown();

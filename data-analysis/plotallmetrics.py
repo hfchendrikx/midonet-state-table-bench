@@ -11,7 +11,7 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/seperate-oracle-500000wps"
+BASE_DIR = "scratch/restart-test"
 
 OVERLAY_JMX_CPU = True
 OVERLAY_JMX_MEMORY = True

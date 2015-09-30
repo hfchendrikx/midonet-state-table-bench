@@ -2,12 +2,14 @@ package org.midonet.benchmarks;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import kafka.utils.ZKStringSerializer$;
 import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.benchmarks.latencyNodes.*;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
+import org.midonet.cluster.data.storage.KafkaBus$;
 import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
@@ -188,8 +190,10 @@ public class MergedMapTestBench extends TestBench {
             int mapRank = worldRank % (writersPerMap + readersPerMap);
             boolean imTheWriter = mapRank == 0;
 
-            zookeeperClient = KafkaBus.zookeeperClient();
-
+            zookeeperClient = new ZkClient(KafkaBus$.MODULE$.zkHosts(),
+                    5000 /*session timeout*/,
+                    5000 /*connection timeout*/,
+                    ZKStringSerializer$.MODULE$);
 
             /*
              * Let all the writers setup the map first so that they can create it, and

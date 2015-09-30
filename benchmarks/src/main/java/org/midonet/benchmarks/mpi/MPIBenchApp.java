@@ -323,6 +323,12 @@ public class MPIBenchApp {
         return data;
     }
 
+    protected int broadcast(int source, int value) throws MPIException {
+        int[] data = (source == mpiRank) ? new int[]{value} : new int[1];
+        MPI.COMM_WORLD.bcast(data, 1, MPI.INT, source);
+        return data[0];
+    }
+
     /**
      * Convenient wrapper around global barrier
      */

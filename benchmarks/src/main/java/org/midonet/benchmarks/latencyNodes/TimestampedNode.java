@@ -1,5 +1,7 @@
 package org.midonet.benchmarks.latencyNodes;
 
+import mpi.MPI;
+
 import java.io.PrintStream;
 
 /**

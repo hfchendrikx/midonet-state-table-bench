@@ -9,12 +9,14 @@ import org.midonet.benchmarks.latencyNodes.*;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
+import org.midonet.cluster.data.storage.KafkaBus$;
 import org.midonet.cluster.data.storage.MergedMap;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Tuple2;
+import kafka.utils.ZKStringSerializer$;
 
 import java.io.File;
 import java.util.Arrays;
@@ -34,6 +36,8 @@ import java.util.Scanner;
  *.    Reader        Reader
  */
 public class MultiMergedMapTestBench extends TestBench {
+
+    public static final long MAP_SHUTDOWN_THROTTLE_NS_PER_MAP = 25000; //25ms per map
 
     int tableSize = 1000;
     String mapBaseName;
@@ -181,7 +185,11 @@ public class MultiMergedMapTestBench extends TestBench {
             int numberOfMapsIHave = myMaps.length;
 
 
-            zookeeperClient = KafkaBus.zookeeperClient();
+            zookeeperClient = new ZkClient(KafkaBus$.MODULE$.zkHosts(),
+                    5000 /*session timeout*/,
+                    5000 /*connection timeout*/,
+                    ZKStringSerializer$.MODULE$);
+
             MergedMap<IPv4Addr, ArpCacheEntry>[] maps = new MergedMap[numberOfMapsIHave];
             KafkaBus<IPv4Addr, ArpCacheEntry>[] busses = new KafkaBus[numberOfMapsIHave];
 
@@ -197,9 +205,17 @@ public class MultiMergedMapTestBench extends TestBench {
             }
 
             if (iAmAWriter) {
+                String owner = "node_w_" + worldRank;
+                //Delay creation of maps for every node with 500ms
+                try {
+                    Thread.sleep(myId * 500);
+                    status_log.info("Start map creation on " + owner);
+                } catch (InterruptedException e) {
+                    log.error("Map creation delay sleep interrupted", e);
+                }
 
                 for (int i=0; i<numberOfMapsIHave; i++) {
-                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], "node" + worldRank, zookeeperClient);
+                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], owner, zookeeperClient);
                     maps[i] = mapAndBus._1();
                     busses[i] = mapAndBus._2();
                 }
@@ -218,7 +234,7 @@ public class MultiMergedMapTestBench extends TestBench {
                 }
 
                 for (int i=0; i<numberOfMapsIHave; i++) {
-                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], "node" + worldRank, zookeeperClient);
+                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], "node_r_" + worldRank, zookeeperClient);
                     maps[i] = mapAndBus._1();
                     busses[i] = mapAndBus._2();
                 }
@@ -252,6 +268,9 @@ public class MultiMergedMapTestBench extends TestBench {
 
     private static final Logger log =
         LoggerFactory.getLogger(MultiMergedMapTestBench.class);
+
+    private static final Logger status_log =
+            LoggerFactory.getLogger("status");
 
     public static void main(String[] args) {
         int worldSize = -1;

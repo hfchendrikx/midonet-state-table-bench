@@ -54,14 +54,14 @@ public class BatchTestBench extends MPIBenchApp {
             try {
                 broadcast(new int[]{batchRunNumber}, 1, 0);
             } catch (MPIException e) {
-                log.error("Broadcasting of batch run number failed at root");
+                log.error("Broadcasting of batch run number failed at root", e);
             }
         } else {
             try {
                 int[] number = broadcast(new int[]{}, 1, 0);
                 this.batchRunNumber = number[0];
             } catch (MPIException e) {
-                log.error("Broadcasting of batch run number failed at non-root");
+                log.error("Broadcasting of batch run number failed at non-root", e);
             }
         }
     }
@@ -71,6 +71,12 @@ public class BatchTestBench extends MPIBenchApp {
     }
 
     public void run() {
+
+        if (!this.preRun()) {
+            log.error("Aborting this run because of failed preRun");
+            return;
+        }
+
         String benchmarkType = currentRunConfiguration.getString("bench");
         switch (benchmarkType) {
             case "MergedMapTestBench":
@@ -83,6 +89,65 @@ public class BatchTestBench extends MPIBenchApp {
                 log.warn("Unknown benchmark type '{}' found in run configuration",benchmarkType);
                 break;
         }
+    }
+
+    protected boolean preRun() {
+
+        if (isMpiRoot()) {
+            boolean succeeded = executePreRunScript();
+
+            try {
+                broadcast(new int[]{succeeded ? 1: 0}, 1, 0);
+            } catch (MPIException e) {
+                log.error("Broadcasting of prerun script exit state failed at root", e);
+            }
+
+            return succeeded;
+        } else {
+            try {
+                int[] exitState = broadcast(new int[]{}, 1, 0);
+                return (exitState[0] == 1);
+            } catch (MPIException e) {
+                log.error("Broadcasting of prerun script exit state failed at non-root", e);
+            }
+        }
+
+        return false;
+    }
+
+    protected boolean executePreRunScript() {
+        String scriptPath = batchConfiguration.getString("preRunScript");
+        if (scriptPath.equals("")) {
+            return true;
+        }
+
+        File output = new File(batchConfiguration.getString("preRunOutputFile"));
+        if (!output.exists()) {
+            try {
+                output.createNewFile();
+            } catch (IOException e) {
+                log.error("Creating prerun output file failed", e);
+                return false;
+            }
+        }
+        ProcessBuilder pb = new ProcessBuilder(scriptPath);
+        pb.inheritIO();
+        pb.redirectOutput(ProcessBuilder.Redirect.appendTo(output));
+        Process process = null;
+
+        try {
+            process = pb.start();
+            process.waitFor();
+            if (process.exitValue() != 0) {
+                log.error("prerun script exited with nonzero exit code " + process.exitValue());
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("prerun script failed",e);
+            return false;
+        }
+
+        return true;
     }
 
     private void runMergedMapTestBench() {
@@ -165,7 +230,6 @@ public class BatchTestBench extends MPIBenchApp {
                 setRestartJvm(false);
             }
         } else {
-
             try {
                 bench.run();
             } catch (Exception e) {

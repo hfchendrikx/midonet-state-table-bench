@@ -8,8 +8,11 @@ evaluationDependsOn(':openmpi')
 def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
                   "/lib/mpi.jar")
 
+def kafkajar1 = "${midonetPath}/cluster/build/libs/kafka_2.11-0.8.3-SNAPSHOT.jar"
+def kafkajar2 = "${midonetPath}/cluster/build/libs/kafka-clients-0.8.3-SNAPSHOT.jar"
+
 project.ext {
-    scalaLangLevel = 'Scala 2.11.2'
+    scalaLangLevel = 'Scala 2.11.7'
     midonetVersion = "2015.03-SNAPSHOT"
     midolmanJar = "${midonetPath}/midolman/build/libs/midolman-${midonetVersion}.jar"
     midoutilJar = "${midonetPath}/midonet-util/build/libs/midonet-util-${midonetVersion}.jar"
@@ -53,7 +56,8 @@ dependencies {
     compile project(':openmpi')
     compile files("${mpiJar}")
     compile midonetDeps
-    compile "org.scala-lang:scala-library:2.11.2"
+    compile "org.scala-lang:scala-library:2.11.7"
+    compile "org.scala-lang.modules:scala-parser-combinators_2.11:1.0.4"
     compile "com.typesafe.scala-logging:scala-logging_2.11:3.1.0"
     compile "com.typesafe:config:1.2.1"
     compile "org.codehaus.jackson:jackson-core-asl:1.9.3"
@@ -74,8 +78,14 @@ dependencies {
     compile "org.apache.curator:curator-recipes:2.6.0"
     compile "org.scala-lang:scala-library:2.11.2"
     compile "org.apache.curator:curator-test:2.7.1"
+
     compile "org.apache.kafka:kafka_2.11:0.8.2.1"
     compile "org.apache.kafka:kafka-clients:0.8.2.1"
+    //compile "com.yammer.metrics:metrics-core:2.2.0"
+    //compile "com.101tec:zkclient:0.5"
+    //compile files("${kafkajar1}")
+    //compile files("${kafkajar2}")
+
     compile "org.slf4j:slf4j-api:1.7.7"
     compile "ch.qos.logback:logback-classic:1.0.1"
     compile dependencies.create("org.apache.zookeeper:zookeeper:3.4.6") {

@@ -1,8 +1,10 @@
 package org.midonet.benchmarks;
 
+import kafka.utils.ZKStringSerializer$;
 import org.I0Itec.zkclient.ZkClient;
 import org.midonet.cluster.data.storage.ArpMergedMap;
 import org.midonet.cluster.data.storage.KafkaBus;
+import org.midonet.cluster.data.storage.KafkaBus$;
 import org.midonet.midolman.layer3.Route;
 import org.midonet.midolman.serialization.SerializationException;
 import org.midonet.midolman.state.ArpCacheEntry;
@@ -209,7 +211,11 @@ public class LatencyBench extends MapSetBenchmark {
 
                 LatencyBench bench =
                     new LatencyBench(type, dataSize, writeCount,
-                                     KafkaBus.zookeeperClient());
+                            new ZkClient(KafkaBus$.MODULE$.zkHosts(),
+                                    5000 /*session timeout*/,
+                                    5000 /*connection timeout*/,
+                                    ZKStringSerializer$.MODULE$)
+                );
                 bench.run();
             } catch (Exception e) {
                 log.error("An exception was caught during the benchmark", e);
