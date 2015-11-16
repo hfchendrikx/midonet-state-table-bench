@@ -11,8 +11,15 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/oracle-seperated_cluster-500maps500ups"
+BASE_DIR = "scratch/crash-test-2maps-2k-kill"
 
+EXPERIMENT_DIR = BASE_DIR + "/exp/MMTB-2w9c1000ups1000ts180000x";
+JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
+NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
+
+INTERPOLATE_MEASUREMENT_TIME = False
+
+PLOT_LATENCIES_SEPERATE = False
 PLOT_LATENCIES = True
 OVERLAY_JMX_CPU = False
 OVERLAY_JMX_MEMORY = False
@@ -20,7 +27,7 @@ OVERLAY_JMX_GC = False
 OVERLAY_JMX_GC_TIME = False
 OVERLAY_JMX_ZK_MAXLATENCY = False
 OVERLAY_JMX_ZK_PACKETS = False
-OVERLAY_NMON_NETWORK = True
+OVERLAY_NMON_NETWORK = False
 OVERLAY_NMON_NETWORK_INTERFACES = ['eth0']
 OVERLAY_NMON_DISK_RATE = False
 OVERLAY_NMON_DISK_BUSY = False
@@ -28,22 +35,39 @@ OVERLAY_NMON_DISK_DISKS = ['sdb']
 
 PLOT_BOXPLOT = False
 PLOT_HISTOGRAM = False
-
-EXPERIMENT_DIR = BASE_DIR + "/exp/MultiMMTB-10mpw10mpr500maps500ups1000ts150000x";
-JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
-NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
+PLOT_HISTOGRAM_ALL = False
 
 if PLOT_HISTOGRAM:
+    figure = plt.figure()
     for f in listdir(EXPERIMENT_DIR):
         if (isdir(EXPERIMENT_DIR + "/" + f)):
             filename = EXPERIMENT_DIR + "/" + f + "/raw-latency-data"
             if isfile(filename):
                 test = processDataFile(filename)
                 plt.hist(test, histtype="stepfilled",
-                             bins=250, alpha=0.5, normed=True)
+                             bins=200, alpha=0.5, normed=False, range=(0,1500))
 
 
-    plt.title("Histogram of all nodes")
+    plt.title("Histogram of nodes seperately")
+    plt.xlabel("Latency [ms]")
+    plt.ylabel("Frequency")
+
+if PLOT_HISTOGRAM_ALL:
+    figure = plt.figure()
+
+    all_latencies = list()
+
+    for f in listdir(EXPERIMENT_DIR):
+        if (isdir(EXPERIMENT_DIR + "/" + f)):
+            filename = EXPERIMENT_DIR + "/" + f + "/raw-latency-data"
+            if isfile(filename):
+                data = processDataFile(filename)
+                all_latencies = all_latencies + data
+
+
+    plt.hist(all_latencies, histtype="stepfilled",
+                 bins=50, alpha=0.5, normed=False, range=(100,1500))
+    plt.title("Histogram of all nodes together")
     plt.xlabel("Latency [ms]")
     plt.ylabel("Frequency")
 
@@ -66,7 +90,7 @@ if PLOT_BOXPLOT:
     plot_labels.append("ALL NODES")
     latencies.append(all_latencies)
 
-    #plt.boxplot(latencies)
+    plt.boxplot(latencies)
     plt.xticks(range(1,len(plot_labels)+1), plot_labels, rotation='vertical')
 
     means = [np.mean(x) for x in latencies]
@@ -82,19 +106,53 @@ if PLOT_BOXPLOT:
     plt.title("Latency on all nodes")
     plt.ylabel("Latency [ms]")
 
+if PLOT_LATENCIES_SEPERATE:
+    plt.figure()
+    plt.title("Latency over time")
+    plt.xlabel("Time since start of test [s]")
+    plt.ylabel("Latency [ms]")
+
+    if INTERPOLATE_MEASUREMENT_TIME:
+        timeSeriesLatencies = calculateTimeSeriesLatencies(EXPERIMENT_DIR)
+    else:
+        timeSeriesLatencies = loadTimeSeriesLatencies(EXPERIMENT_DIR)
+
+    width = int(np.ceil(sqrt(len(timeSeriesLatencies))))
+    height = int(np.ceil(len(timeSeriesLatencies) / float(width)))
+    x = 0;
+    y = 0;
+    fig, ax = plt.subplots(width,height, sharex=True, sharey=True)
+    plt.subplots_adjust(left=0.03, bottom=0.02, right=0.98, top=0.98, wspace=0.02, hspace=0.02)
+
+    for index in timeSeriesLatencies:
+        if not index == 'start':
+            ax[x,y].plot(timeSeriesLatencies[index][0], timeSeriesLatencies[index][1])
+
+            ax[x,y].set_ylim(0,600)
+            ax[x,y].set_xlim(0,300)
+
+            x += 1
+            if x >= width:
+                x = 0
+                y += 1
+
+
 if PLOT_LATENCIES:
     plt.figure()
     plt.title("Latency over time")
     plt.xlabel("Time since start of test [s]")
     plt.ylabel("Latency [ms]")
 
-    timeSeriesLatencies = calculateTimeSeriesLatencies(EXPERIMENT_DIR)
+    if INTERPOLATE_MEASUREMENT_TIME:
+        timeSeriesLatencies = calculateTimeSeriesLatencies(EXPERIMENT_DIR)
+    else:
+        timeSeriesLatencies = loadTimeSeriesLatencies(EXPERIMENT_DIR)
 
     for x in timeSeriesLatencies:
         if not x == 'start':
-            pass#plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])
+            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])#, marker="o")
 
-    plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
+    #plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
     #plt.ylim(0, 1000)

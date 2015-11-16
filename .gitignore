@@ -19,3 +19,4 @@ gradle-app.setting
 data-analysis/scratch/*
 *.pyc
 *.out
+data-analysis/final-raw-data/*

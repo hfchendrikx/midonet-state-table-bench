@@ -208,8 +208,9 @@ public class MultiMergedMapTestBench extends TestBench {
                 String owner = "node_w_" + worldRank;
                 //Delay creation of maps for every node with 500ms
                 try {
-                    Thread.sleep(myId * 500);
-                    status_log.info("Start map creation on " + owner);
+                    int sleepTime = myId * 1500;
+                    Thread.sleep(sleepTime);
+                    status_log.info("Start map creation on " + owner + " ("+sleepTime+")");
                 } catch (InterruptedException e) {
                     log.error("Map creation delay sleep interrupted", e);
                 }
@@ -231,6 +232,14 @@ public class MultiMergedMapTestBench extends TestBench {
             } else {
                 try { this.barrier(); } catch (MPIException e) {
                     log.error("Error during waiting on barrier after node init (reader)", e);
+                }
+
+                try {
+                    int sleepTime = myId * 500;
+                    Thread.sleep(sleepTime);
+                    status_log.info("Creating readers on " + worldRank + " (" + sleepTime + ")");
+                } catch (InterruptedException e) {
+                    log.error("Reader connect delay sleep interrupted", e);
                 }
 
                 for (int i=0; i<numberOfMapsIHave; i++) {

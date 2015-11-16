@@ -122,8 +122,8 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
       }
     } catch {
       case NonFatal(e) =>
-        log.warn("Caught exception in consumer thread, shutting down.")
-        shutdown()
+        log.warn("Caught exception in consumer thread, shutting down.", e)
+        //shutdown()
     }
   })
   consumerThread.submit(consumerRunnable)
@@ -131,9 +131,13 @@ class KafkaBus[K, V >: Null <: AnyRef](id: String, ownerId: String,
   private val sendCallBack = new Callback() {
     def onCompletion(metadata: RecordMetadata, e: Exception): Unit = {
       if (e != null) {
-        log.warn("Unable to send Kafka message for topic: {} and " +
-          "partition: {}", metadata.topic,
-          Int.box(metadata.partition), e)
+        if (metadata != null) {
+          log.warn("Unable to send Kafka message for topic: {} and " +
+            "partition: {}", metadata.topic,
+            Int.box(metadata.partition), e)
+        } else {
+          log.warn("Unable to send Kafka message (metadata is null) ", e)
+        }
       }
     }
   }

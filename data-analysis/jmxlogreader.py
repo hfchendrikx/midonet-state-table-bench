@@ -188,7 +188,7 @@ def discrete_derivative(data, x0=0):
 
         delta_y = int(data[i][1] - last_y)
 
-        if (delta_y != 0):
+        if (delta_y > 0):
             x = (data[i][0] - x0) / 1000.0
             nonzero_derivative_points.append((x, (delta_y)))
 

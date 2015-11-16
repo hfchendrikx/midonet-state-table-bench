@@ -52,25 +52,27 @@ latency = []
 deviation = []
 max95th = []
 for experiment in experiments:
-    grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries(EXPERIMENT_DIR + "/"+experiment))
+    print experiment
+    #grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries(EXPERIMENT_DIR + "/"+experiment))
+    grandSummary = calculateExperimentStatistics(EXPERIMENT_DIR + "/"+experiment)
     readers.append(experiments[experiment]['readers'])
     latency.append(grandSummary['mean'])
     deviation.append(grandSummary['stddev'])
     max95th.append(grandSummary['95thmax'])
 
-plt.title("Number of readers vs Latency")
+#plt.title("Number of readers vs Latency")
 plt.xlabel("Number of readers")
 plt.ylabel("Latency [ms]")
 
 data = zip(readers, latency, deviation, max95th)
 x, y, err, max95th = zip(*sorted(data))
 
-plt.plot(x, y, linestyle='--', marker='o', color='g', label="Grand mean")
-plt.plot(x, max95th, linestyle='', marker='D', color='g', label="Max 95th percentile of one node")
-plt.errorbar(x, y, yerr=err, linestyle=' ', color='g', label="Pooled standard deviation")
+plt.plot(x, y, linestyle='--', marker='o', color='g', label="Mean of all nodes")
+plt.plot(x, max95th, linestyle='', marker='D', color='g', label="Max 95th percentile")
+plt.errorbar(x, y, yerr=err, linestyle=' ', color='g', label="Average standard deviation")
 
-plt.legend(prop={'size':12})
-plt.ylim(0, 50)
+plt.legend(prop={'size':12}, loc='upper left')
+plt.ylim(0, 80)
 plt.xlim(0, 242)
 plt.show()
 

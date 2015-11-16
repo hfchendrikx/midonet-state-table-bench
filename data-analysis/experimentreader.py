@@ -3,6 +3,7 @@ from os import listdir
 from os.path import isfile, join, isdir
 import re
 from numpy import sqrt
+import numpy
 
 MMTB_regexp = '^MMTB-(\d)w(\d+)c(\d+)ups(\d+)ts(\d+)x$'
 #MultiMMTB-5mpw5mpr1maps100ups1000ts30000x
@@ -107,6 +108,33 @@ def calculateTimeSeriesLatencies(directory):
                 delta = (end-start)/len(data);
                 times = [delta*i / 1000 for i in range(0, len(data))]
                 data = [float(y) for y in data]
+                latencies[f] = (times, data)
+
+    latencies['start'] = start
+
+    return latencies
+
+def loadTimeSeriesLatencies(directory):
+    latencies = {}
+    start = 0;
+    for f in listdir(directory):
+        if (isdir(directory + "/" + f)):
+            filename = directory + "/" + f + "/raw-latency-data"
+            if (isfile(filename)):
+                timestamp_file = directory + "/" + f + "/raw-timestamp-data"
+
+                if (not isfile(timestamp_file)):
+                    print "Skipping " + f + " no raw-timestamp-data file found"
+                    continue
+
+                data = processDataFile(filename)
+                timedata = processDataFile(timestamp_file)
+                start = timedata[0];
+
+                print "Node " + f + " data points: " + str(len(data))
+
+                times = [y-start for y in timedata]
+                data = [y for y in data]
                 latencies[f] = (times, data)
 
     latencies['start'] = start

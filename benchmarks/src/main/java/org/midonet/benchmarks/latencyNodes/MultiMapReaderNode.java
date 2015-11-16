@@ -30,7 +30,6 @@ public class MultiMapReaderNode extends TimestampedNode {
 
     private static final Logger log =
             LoggerFactory.getLogger(MultiMapReaderNode.class);
-
     MergedMap<IPv4Addr, ArpCacheEntry>[] maps;
     KafkaBus<IPv4Addr, ArpCacheEntry>[] busses;
     Subscription[] subscriptions;

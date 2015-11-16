@@ -11,8 +11,10 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/restart-test"
+BASE_DIR = "final-raw-data/writerate-100k-300k-20nodes-2000maps-onlysummary"
 
+PLOT_CPU_CORES = True
+PLOT_NMON_MEMORY = True
 OVERLAY_JMX_CPU = True
 OVERLAY_JMX_MEMORY = True
 OVERLAY_JMX_GC = True
@@ -20,7 +22,7 @@ OVERLAY_JMX_GC_TIME = True
 OVERLAY_JMX_ZK_MAXLATENCY = True
 OVERLAY_JMX_ZK_PACKETS = True
 OVERLAY_NMON_NETWORK = True
-OVERLAY_NMON_NETWORK_INTERFACES = ['eth0']
+OVERLAY_NMON_NETWORK_INTERFACES = ['eth2','eth4', 'eth5']
 OVERLAY_NMON_DISK_RATE = True
 OVERLAY_NMON_DISK_BUSY = True
 OVERLAY_NMON_DISK_DISKS = ['sdb','sda']
@@ -28,10 +30,20 @@ OVERLAY_NMON_DISK_DISKS = ['sdb','sda']
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
+if PLOT_CPU_CORES:
+    data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
+
+    for nodename in data:
+        plotCpuCoreUsage(data[nodename])
+        plt.suptitle(BASE_DIR + ": " + nodename)
+
+if PLOT_NMON_MEMORY:
+    data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
+    plotNmonMemUsage(data)
 
 if OVERLAY_JMX_CPU:
     plt.figure()
-    plt.title("CPU")
+    plt.title("CPU " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_CPU))
     plotCpuUsage(data, "Kafka node 2")
@@ -45,7 +57,7 @@ if OVERLAY_JMX_CPU:
 
 if OVERLAY_JMX_MEMORY:
     plt.figure()
-    plt.title("Memory")
+    plt.title("Memory " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_MEMORY))
     plotHeapUsage(data, "Kafka node 2", used=True)
@@ -58,7 +70,7 @@ if OVERLAY_JMX_MEMORY:
 
 if OVERLAY_JMX_ZK_MAXLATENCY:
     plt.figure()
-    plt.title("Zookeeper Max Latency")
+    plt.title("Zookeeper Max Latency " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_2, LOG_TYPE_GENERAL))
     plotZookeeperMaxLatency(data, "ZK node 2")
@@ -71,7 +83,7 @@ if OVERLAY_JMX_ZK_MAXLATENCY:
 
 if OVERLAY_JMX_ZK_PACKETS:
     plt.figure()
-    plt.title("Zookeeper Packets")
+    plt.title("Zookeeper Packets " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_ZOOKEEPER, CLUSTER_NODE_2, LOG_TYPE_GENERAL))
     plotZookeeperPacketsPerInterval(data, "ZK node 2", color="g")
@@ -86,7 +98,7 @@ if OVERLAY_JMX_ZK_PACKETS:
 
 if OVERLAY_JMX_GC:
     plt.figure()
-    plt.title("Garbage Collections")
+    plt.title("Garbage Collections " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
     plotGcMoments(data, "Kafka node 2", color = 'g')
@@ -100,7 +112,7 @@ if OVERLAY_JMX_GC:
 
 if OVERLAY_JMX_GC_TIME:
     plt.figure()
-    plt.title("Garbage Collection Time")
+    plt.title("Garbage Collection Time " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
     plotTimeSpentInGC(data, "Kafka node 2", color = 'g')
@@ -115,7 +127,7 @@ if OVERLAY_JMX_GC_TIME:
 
 if OVERLAY_NMON_NETWORK:
     plt.figure()
-    plt.title("Network Usage")
+    plt.title("Network Usage " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
 
@@ -128,7 +140,7 @@ if OVERLAY_NMON_NETWORK:
 
 if OVERLAY_NMON_DISK_RATE:
     plt.figure()
-    plt.title("Disk Read/Write")
+    plt.title("Disk Read/Write " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
 
@@ -141,7 +153,7 @@ if OVERLAY_NMON_DISK_RATE:
 
 if OVERLAY_NMON_DISK_BUSY:
     plt.figure()
-    plt.title("Disk Busy")
+    plt.title("Disk Busy " + BASE_DIR)
     plt.xlabel("Time since start of measurements [s]")
     data = readNmonDirectory(NMONLOG_FILE_DIRECTORY)
 
