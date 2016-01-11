@@ -11,16 +11,16 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "scratch/crash-test-2maps-2k-kill"
+BASE_DIR = "jgroups-data/5000maps-netty-50k-12min"
 
-EXPERIMENT_DIR = BASE_DIR + "/exp/MMTB-2w9c1000ups1000ts180000x";
+EXPERIMENT_DIR = BASE_DIR + "/exp/MultiMMTB-50mpw50mpr5000maps10ups1000ts7500x";
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
 
-INTERPOLATE_MEASUREMENT_TIME = False
+INTERPOLATE_MEASUREMENT_TIME = True
 
-PLOT_LATENCIES_SEPERATE = False
-PLOT_LATENCIES = True
+PLOT_LATENCIES_SEPERATE = True
+PLOT_LATENCIES = False
 OVERLAY_JMX_CPU = False
 OVERLAY_JMX_MEMORY = False
 OVERLAY_JMX_GC = False
@@ -45,7 +45,7 @@ if PLOT_HISTOGRAM:
             if isfile(filename):
                 test = processDataFile(filename)
                 plt.hist(test, histtype="stepfilled",
-                             bins=200, alpha=0.5, normed=False, range=(0,1500))
+                             bins=1000, alpha=0.5, normed=False, range=(1000,30000))
 
 
     plt.title("Histogram of nodes seperately")
@@ -150,9 +150,9 @@ if PLOT_LATENCIES:
 
     for x in timeSeriesLatencies:
         if not x == 'start':
-            plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])#, marker="o")
+            pass#plt.plot(timeSeriesLatencies[x][0], timeSeriesLatencies[x][1])#, marker="o")
 
-    #plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
+    plt.plot(timeSeriesLatencies[timeSeriesLatencies.keys()[0]][0], timeSeriesLatencies[timeSeriesLatencies.keys()[0]][1])
 
     start = long(timeSeriesLatencies['start'])
     #plt.ylim(0, 1000)

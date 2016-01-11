@@ -1,0 +1,65 @@
+{
+    "servers": [
+        {
+            "port": 9998,
+            "host": "zoo2",
+            "alias" : "c2",
+            "queries": [
+
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/zoo-c2-general.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "org.apache.ZooKeeperService:name0=ReplicatedServer_id*,name1=replica*,name2=*",
+                    "resultAlias": "zoo",
+                    "attr": [
+                        "MaxClientCnxnsPerHost",
+                        "MaxRequestLatency",
+                        "AvgRequestLatency",
+                        "MinRequestLatency",
+                        "MaxSessionTimeout",
+                        "MinSessionTimeout",
+                        "OutstandingRequests",
+                        "PacketsReceived",
+                        "PacketsSent",
+                        "PendingRevalidationCount",
+                        "TickTime"
+                    ]
+                },
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/zoo-c2-mem.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "java.lang:type=Memory",
+                    "resultAlias": "mem",
+                    "attr": [
+                        "HeapMemoryUsage",
+                        "NonHeapMemoryUsage"
+                    ]
+                }
+            ],
+            "numQueryThreads": 2
+        }
+    ]
+}
+

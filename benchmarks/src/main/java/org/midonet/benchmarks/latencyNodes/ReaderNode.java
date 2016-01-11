@@ -45,7 +45,7 @@ public class ReaderNode implements TestNode {
     public void setup() {
         this.startWarmupTime = System.currentTimeMillis();
         this.reader.readWarmup();
-        for (int i=0;i<numberOfWarmupReads;i++) {
+        for (int i = 0; i < numberOfWarmupReads; i++) {
             this.reader.readEntry();
         }
         this.endWarmupTime = System.currentTimeMillis();

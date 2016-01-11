@@ -1,0 +1,70 @@
+{
+    "servers": [
+        {
+            "port": 9996,
+            "host": "clusternode1",
+            "alias" : "c1",
+            "queries": [
+
+   
+
+{
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+        "settings" : {
+          "outputFile" : "logs/kafka-c1-cpu.log",
+          "maxLogFileSize" : "50MB",
+          "maxLogBackupFiles" : 200,
+          "delimiter" : "\t",
+          "debug" : false,
+          "typeNames" : ["name"]
+        }
+      } ],
+      "resultAlias": "os",
+      "obj" : "java.lang:type=OperatingSystem",
+      "attr" : [ "ProcessCpuLoad", "SystemCpuLoad", "SystemLoadAverage" ]
+    },
+
+{
+      "outputWriters" : [ {
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-gc.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+} ],
+      "obj" : "java.lang:type=GarbageCollector,name=*",
+      "resultAlias": "gc",
+      "attr" : [ "CollectionCount", "CollectionTime" ]
+    },
+                {
+                    "outputWriters": [
+{
+        "@class" : "com.googlecode.jmxtrans.model.output.KeyOutWriter",
+"settings" : {
+"outputFile" : "logs/kafka-c1-mem.log",
+"maxLogFileSize" : "50MB",
+"maxLogBackupFiles" : 200,
+"delimiter" : "\t",
+"debug" : false,
+"typeNames" : ["name"]
+        }
+}
+                    ],
+                    "obj": "java.lang:type=Memory",
+                    "resultAlias": "mem",
+                    "attr": [
+                        "HeapMemoryUsage",
+                        "NonHeapMemoryUsage"
+                    ]
+                }
+            ],
+            "numQueryThreads": 2
+        }
+    ]
+}
+

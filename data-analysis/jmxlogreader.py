@@ -38,6 +38,12 @@ LOG_JVM_GC_PARNEW_TIME = "ParNew.CollectionTime"
 LOG_JVM_GC_CONCURRENTMARKSWEEP_COUNT = "ConcurrentMarkSweep.CollectionCount"
 LOG_JVM_GC_CONCURRENTMARKSWEEP_TIME = "ConcurrentMarkSweep.CollectionTime"
 
+LOG_JVM_GC_PSMARKSWEEP_COUNT = "PSMarkSweep.CollectionCount"
+LOG_JVM_GC_PSMARKSWEEP_TIME = "PSMarkSweep.CollectionTime"
+LOG_JVM_GC_PSSCAVENGE_COUNT = "PSScavenge.CollectionCount"
+LOG_JVM_GC_PSSCAVENGE_TIME = "PSScavenge.CollectionTime"
+
+
 def getFilename(name, cluster, type):
     return name + "-" + cluster + "-" + type + ".log"
 
@@ -177,6 +183,24 @@ def plotTimeSpentInGC(data, node_name="", x0=None, color='r'):
     if len(parnew_events) > 0:
         x, y = zip(*parnew_events)
         plt.scatter(x, y, marker="o", color=color, label=node_name + " GC (Par New) [ms]")
+
+def plotTimeSpentInGC_Java8Default(data, node_name="", x0=None, color='r'):
+    if x0 is None:
+        x0 = data[LOG_JVM_GC_PSMARKSWEEP_TIME][0][0];
+
+    psms_time = data[LOG_JVM_GC_PSMARKSWEEP_TIME]
+    psscavenge_time = data[LOG_JVM_GC_PSSCAVENGE_TIME]
+
+    psms_events = discrete_derivative(psms_time, x0)
+    psscavenge_events = discrete_derivative(psscavenge_time, x0)
+
+    if len(psms_events) > 0:
+        x, y = zip(*psms_events)
+        plt.scatter(x, y, marker="D", color=color, label=node_name + " GC (PS Mark Sweep) [ms]")
+
+    if len(psscavenge_events) > 0:
+        x, y = zip(*psscavenge_events)
+        plt.scatter(x, y, marker="o", color=color, label=node_name + " GC (PS Scavenge) [ms]")
 
 
 def discrete_derivative(data, x0=0):

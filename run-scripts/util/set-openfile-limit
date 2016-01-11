@@ -1,0 +1,5 @@
+#!/bin/bash
+sudo sed -i '$a'" * - nofile 1000000" /etc/security/limits.conf
+sudo sed -i '$a'" root soft nofile 1000000" /etc/security/limits.conf
+sudo sed -i '$a'" root hard nofile 1000000" /etc/security/limits.conf
+sudo sed -i '$a'" ulimit -n 500000" /etc/default/slurm-llnl

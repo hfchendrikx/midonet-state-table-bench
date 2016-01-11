@@ -1,5 +1,6 @@
 package org.midonet.benchmarks;
 
+import com.sun.management.UnixOperatingSystemMXBean;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigList;
@@ -14,6 +15,8 @@ import javax.security.auth.login.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.util.List;
 import java.util.Scanner;
 
@@ -85,6 +88,9 @@ public class BatchTestBench extends MPIBenchApp {
             case "MultiMergedMapTestBench":
                 this.runMultiMergedMapTestBench();
                 break;
+            case "PrintNodeDiagnostics":
+                this.runPrintNodeDiagnostics();
+                break;
             default:
                 log.warn("Unknown benchmark type '{}' found in run configuration",benchmarkType);
                 break;
@@ -148,6 +154,15 @@ public class BatchTestBench extends MPIBenchApp {
         }
 
         return true;
+    }
+
+    private void runPrintNodeDiagnostics() {
+        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        if (os instanceof UnixOperatingSystemMXBean) {
+            UnixOperatingSystemMXBean unix = (UnixOperatingSystemMXBean) os;
+            System.out.println("Node " + mpiHostName + ", " + mpiRank +
+                    " open file limit: " + unix.getMaxFileDescriptorCount());
+        }
     }
 
     private void runMergedMapTestBench() {

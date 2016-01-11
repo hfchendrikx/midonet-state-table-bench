@@ -4,19 +4,20 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import mpi.MPI;
 import mpi.MPIException;
-import org.I0Itec.zkclient.ZkClient;
 import org.midonet.benchmarks.latencyNodes.*;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
-import org.midonet.cluster.data.storage.KafkaBus;
-import org.midonet.cluster.data.storage.KafkaBus$;
 import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.cluster.data.storage.MergedMapBus;
+import org.midonet.cluster.data.storage.jgroups.JGroupsBus;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Int;
+import scala.Option;
+import scala.Some;
 import scala.Tuple2;
-import kafka.utils.ZKStringSerializer$;
 
 import java.io.File;
 import java.util.Arrays;
@@ -38,11 +39,12 @@ import java.util.Scanner;
 public class MultiMergedMapTestBench extends TestBench {
 
     public static final long MAP_SHUTDOWN_THROTTLE_NS_PER_MAP = 25000; //25ms per map
+    public static final int SLEEP_PER_MAP_WRITER_CREATION = 350;
+    public static final int SLEEP_PER_READER_CREATION = 350;
+    public static final int AMOUNT_OF_BROKERS = 3;
 
     int tableSize = 1000;
     String mapBaseName;
-
-    ZkClient zookeeperClient;
 
     int numberOfMaps;
     int writeRatePerMap;
@@ -50,6 +52,7 @@ public class MultiMergedMapTestBench extends TestBench {
     int maxNumberOfMapsPerReader;
     int benchmarkWrites;
     int warmupWrites;
+    int initialDelay = 100;
 
     /**
      *
@@ -74,9 +77,9 @@ public class MultiMergedMapTestBench extends TestBench {
         this.maxNumberOfMapsPerWriter = config.getInt("maxNumberOfMapsPerWriter");
         this.benchmarkWrites = config.getInt("benchMarkWrites");
         this.warmupWrites = config.getInt("warmupWrites");
-
         this.mapBaseName = config.getString("mapName");
         this.tableSize = config.getInt("tableSize");
+        this.initialDelay = config.getInt("initialDelay");
     }
 
     public void updateConfigurationWithConfig(Config config) {
@@ -103,6 +106,9 @@ public class MultiMergedMapTestBench extends TestBench {
         }
         if (config.hasPath("tableSize")) {
             this.tableSize = config.getInt("tableSize");
+        }
+        if (config.hasPath("initialDelay")) {
+            this.initialDelay = config.getInt("initialDelay");
         }
     }
 
@@ -184,21 +190,15 @@ public class MultiMergedMapTestBench extends TestBench {
             );
             int numberOfMapsIHave = myMaps.length;
 
-
-            zookeeperClient = new ZkClient(KafkaBus$.MODULE$.zkHosts(),
-                    5000 /*session timeout*/,
-                    5000 /*connection timeout*/,
-                    ZKStringSerializer$.MODULE$);
-
             MergedMap<IPv4Addr, ArpCacheEntry>[] maps = new MergedMap[numberOfMapsIHave];
-            KafkaBus<IPv4Addr, ArpCacheEntry>[] busses = new KafkaBus[numberOfMapsIHave];
+            MergedMapBus<IPv4Addr, ArpCacheEntry>[] busses = new MergedMapBus[numberOfMapsIHave];
 
             /*
              * Let all the writers setup the map first so that they can create it, and
              * after that is done the readers can open up a connection to it
              * (The kafka topic needs to be created by only one node)
              */
-            Tuple2<MergedMap<IPv4Addr, ArpCacheEntry>, KafkaBus<IPv4Addr, ArpCacheEntry>> mapAndBus = null;
+            Tuple2<MergedMap<IPv4Addr, ArpCacheEntry>, MergedMapBus<IPv4Addr, ArpCacheEntry>> mapAndBus = null;
             String mapNamesString = "";
             for (String mapName : myMaps) {
                 mapNamesString += mapName + " , ";
@@ -208,7 +208,7 @@ public class MultiMergedMapTestBench extends TestBench {
                 String owner = "node_w_" + worldRank;
                 //Delay creation of maps for every node with 500ms
                 try {
-                    int sleepTime = myId * 1500;
+                    int sleepTime = myId * SLEEP_PER_MAP_WRITER_CREATION;
                     Thread.sleep(sleepTime);
                     status_log.info("Start map creation on " + owner + " ("+sleepTime+")");
                 } catch (InterruptedException e) {
@@ -216,7 +216,7 @@ public class MultiMergedMapTestBench extends TestBench {
                 }
 
                 for (int i=0; i<numberOfMapsIHave; i++) {
-                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], owner, zookeeperClient);
+                    mapAndBus = ArpMergedMap.newArpMapAndBus(myMaps[i], owner, worldRank % AMOUNT_OF_BROKERS);
                     maps[i] = mapAndBus._1();
                     busses[i] = mapAndBus._2();
                 }
@@ -227,7 +227,7 @@ public class MultiMergedMapTestBench extends TestBench {
 
                 log.info("Starting writer on " + this.mpiHostName + " to maps " + mapNamesString + " (" + worldRank + "," + worldSize + ")");
 
-                node = new MultiMapWriterNode(maps, busses, benchmarkWrites, warmupWrites, writeRatePerMap, ipAddresses, random);
+                node = new MultiMapWriterNode(maps, busses, benchmarkWrites, warmupWrites, writeRatePerMap, ipAddresses, random, initialDelay);
 
             } else {
                 try { this.barrier(); } catch (MPIException e) {
@@ -235,7 +235,7 @@ public class MultiMergedMapTestBench extends TestBench {
                 }
 
                 try {
-                    int sleepTime = myId * 500;
+                    int sleepTime = myId * SLEEP_PER_READER_CREATION;
                     Thread.sleep(sleepTime);
                     status_log.info("Creating readers on " + worldRank + " (" + sleepTime + ")");
                 } catch (InterruptedException e) {
@@ -243,7 +243,7 @@ public class MultiMergedMapTestBench extends TestBench {
                 }
 
                 for (int i=0; i<numberOfMapsIHave; i++) {
-                    mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMaps[i], "node_r_" + worldRank, zookeeperClient);
+                    mapAndBus = ArpMergedMap.newArpMapAndBus(myMaps[i], "node_r_" + worldRank, worldRank % AMOUNT_OF_BROKERS);
                     maps[i] = mapAndBus._1();
                     busses[i] = mapAndBus._2();
                 }
@@ -313,7 +313,6 @@ public class MultiMergedMapTestBench extends TestBench {
             MultiMergedMapTestBench bench = new MultiMergedMapTestBench(
                     worldSize,
                     worldRank
-
             );
             bench.setBookkeeper(bookkeeper);
             bench.configureWithConfig(configuration.getConfig("MultiMergedMapTestBench"));

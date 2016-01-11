@@ -1,0 +1,18 @@
+#!/bin/bash
+
+WORK_DIR=/proj/midonet/lattest
+EXPERIMENTS=~/output/batch
+
+
+#clear jmx logs
+./pdsh-jmx "kill \$(pgrep -f jmxtrans)"
+./pdsh-jmx rm /usr/share/jmxtrans/jmxtrans-251/logs/*
+./pdsh-jmx /proj/midonet/lattest/jmx/start-jmx-daemon.sh 
+
+#clear nmon logs
+./pdsh-cluster pkill -USR2 nmon
+./pdsh-cluster rm /var/log/nmon/*
+./pdsh-cluster nmon -f -s 10 -r "cluster$3" -c 10000000 -m /var/log/nmon
+
+#remove batch experiments
+rm -r $EXPERIMENTS/*

@@ -1,0 +1,20 @@
+#!/bin/sh
+SESSION=$USER
+
+tmux kill-session -t $SESSION
+tmux -2 new-session -d -s $SESSION
+
+tmux new-window -t $SESSION:1 -n 'Benchmarks'
+tmux split-window -h
+tmux select-pane -t 0
+tmux send-keys "tail -f ~/test.out" C-m
+tmux select-pane -t 1
+tmux send-keys "tail -f ~/test.err" C-m
+tmux split-window -v
+tmux send-keys "tail -f ~/prerun.log" C-m
+
+# Set default window
+tmux select-window -t $SESSION:1
+
+# Attach to session
+tmux -2 attach-session -t $SESSION

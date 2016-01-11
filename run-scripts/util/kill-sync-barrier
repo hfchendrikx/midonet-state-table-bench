@@ -1,0 +1,3 @@
+#!/bin/bash
+#kill $(pgrep emulab-sync)
+sudo gdb --batch --eval-command 'call exit(0)' --pid $(pgrep emulab-sync)

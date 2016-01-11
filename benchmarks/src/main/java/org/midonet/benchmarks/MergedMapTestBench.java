@@ -2,20 +2,16 @@ package org.midonet.benchmarks;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import kafka.utils.ZKStringSerializer$;
 import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.benchmarks.latencyNodes.*;
-import org.midonet.benchmarks.mpi.MPIBenchApp;
 import org.midonet.cluster.data.storage.ArpMergedMap;
-import org.midonet.cluster.data.storage.KafkaBus;
-import org.midonet.cluster.data.storage.KafkaBus$;
 import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.cluster.data.storage.MergedMapBus;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.I0Itec.zkclient.ZkClient;
 import scala.Tuple2;
 
 import java.io.File;
@@ -41,7 +37,6 @@ public class MergedMapTestBench extends TestBench {
 
     int worldSize;
     int worldRank;
-    ZkClient zookeeperClient;
     int numberOfMaps;
     int writeRate;
     int writeInterval;
@@ -55,7 +50,6 @@ public class MergedMapTestBench extends TestBench {
      *
      * @param worldSize Information given by MPI
      * @param worldRank Information given by MPI
-     * @param zookeeperClient
      * @param numberOfMaps
      * @param writeRate Number of map entries per second
      * @param writeInterval Interval in which to perform the writes in milliseconds
@@ -65,7 +59,6 @@ public class MergedMapTestBench extends TestBench {
     public MergedMapTestBench(
             int worldSize,
             int worldRank,
-            ZkClient zookeeperClient,
             int numberOfMaps,
             int writeRate,
             int writeInterval,
@@ -79,7 +72,6 @@ public class MergedMapTestBench extends TestBench {
 
         this.worldSize = worldSize;
         this.worldRank = worldRank;
-        this.zookeeperClient = zookeeperClient;
         this.numberOfMaps = numberOfMaps;
         this.writeRate = writeRate;
         this.writeInterval = writeInterval;
@@ -184,16 +176,11 @@ public class MergedMapTestBench extends TestBench {
 
 
             //Nodes are first divided into which map they correspond to and
-            //then if they subdivided in readers/writers
+            //then subdivided in readers/writers
             int myMapId = worldRank / (writersPerMap + readersPerMap);
             String myMapName = mapBaseName + "_" + myMapId;
             int mapRank = worldRank % (writersPerMap + readersPerMap);
             boolean imTheWriter = mapRank == 0;
-
-            zookeeperClient = new ZkClient(KafkaBus$.MODULE$.zkHosts(),
-                    5000 /*session timeout*/,
-                    5000 /*connection timeout*/,
-                    ZKStringSerializer$.MODULE$);
 
             /*
              * Let all the writers setup the map first so that they can create it, and
@@ -201,15 +188,15 @@ public class MergedMapTestBench extends TestBench {
              * (The kafka topic needs to be created by only one node)
              */
             MergedMap<IPv4Addr, ArpCacheEntry> theMap = null;
-            Tuple2<MergedMap<IPv4Addr, ArpCacheEntry>, KafkaBus<IPv4Addr, ArpCacheEntry>> mapAndBus = null;
+            Tuple2<MergedMap<IPv4Addr, ArpCacheEntry>, MergedMapBus<IPv4Addr, ArpCacheEntry>> mapAndBus = null;
             if (imTheWriter) {
-                mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMapName, "node" + worldRank, zookeeperClient);
+                mapAndBus = ArpMergedMap.newArpMapAndBus(myMapName, "node" + worldRank, worldRank % 3);
             }
             try { this.barrier(); } catch (MPIException e) {
                 log.error("Error during waiting on barrier after node init", e);
             }
             if (!imTheWriter) {
-                mapAndBus = ArpMergedMap.newArpMapAndReturnKafkaBus(myMapName, "node" + worldRank, zookeeperClient);
+                mapAndBus = ArpMergedMap.newArpMapAndBus(myMapName, "node" + worldRank, worldRank % 3);
             }
             theMap = mapAndBus._1();
             ArpMergedMapTest testReaderWriter = new ArpMergedMapTest(theMap, mapAndBus._2() , ipAddresses, random);
@@ -222,6 +209,13 @@ public class MergedMapTestBench extends TestBench {
                 //You my friend will have to be a reader
                 log.info("Starting reader on " + this.mpiHostName + " to map " + myMapName + " (" + worldRank + "," + worldSize + ")");
                 node = new ReaderNode(testReaderWriter, benchmarkWrites, warmupWrites);
+
+                //FIX: Wait for connection
+                try {
+                    Thread.sleep(10000l);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
         } else {

@@ -100,7 +100,6 @@ public abstract class TestBench extends MPIBenchApp {
 
         }
 
-
     }
 
     protected void nodeTestCycle(TestNode node) {

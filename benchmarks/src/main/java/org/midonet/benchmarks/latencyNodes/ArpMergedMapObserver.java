@@ -1,6 +1,8 @@
 package org.midonet.benchmarks.latencyNodes;
 
 import org.midonet.benchmarks.mpi.MPIBenchApp;
+import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.midolman.l4lb.IP;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
@@ -13,7 +15,7 @@ import java.util.concurrent.CountDownLatch;
 /**
  * Created by huub on 7-9-15.
  */
-public class ArpMergedMapObserver implements Observer<Tuple2<IPv4Addr, ArpCacheEntry>> {
+public class ArpMergedMapObserver implements Observer<MergedMap.MapUpdate<IPv4Addr, ArpCacheEntry>> {
 
     private static final Logger log =
             LoggerFactory.getLogger(ArpMergedMapObserver.class);
@@ -47,10 +49,10 @@ public class ArpMergedMapObserver implements Observer<Tuple2<IPv4Addr, ArpCacheE
     }
 
     @Override
-    public void onNext(Tuple2<IPv4Addr, ArpCacheEntry> iPv4AddrArpCacheEntryTuple2) {
+    public void onNext(MergedMap.MapUpdate<IPv4Addr, ArpCacheEntry> iPv4AddrArpCacheEntryMapUpdate) {
 
         if(offset >= totalWarmup) {
-            long sent = ArpMergedMapTest.getTimeFromEntry(iPv4AddrArpCacheEntryTuple2._2());
+            long sent = ArpMergedMapTest.getTimeFromEntry(iPv4AddrArpCacheEntryMapUpdate.newValue());
             latencies[offset-totalWarmup] = MPIBenchApp.getTime() - sent;
         }
 

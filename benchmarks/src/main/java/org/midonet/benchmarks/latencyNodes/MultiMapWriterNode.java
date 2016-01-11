@@ -3,8 +3,8 @@ package org.midonet.benchmarks.latencyNodes;
 import mpi.MPI;
 import org.midonet.benchmarks.MultiMergedMapTestBench;
 import org.midonet.benchmarks.mpi.MPIBenchApp;
-import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.cluster.data.storage.MergedMapBus;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
 import org.slf4j.Logger;
@@ -26,22 +26,24 @@ public class MultiMapWriterNode extends TimestampedNode {
             LoggerFactory.getLogger(MultiMapWriterNode.class);
 
     MergedMap<IPv4Addr, ArpCacheEntry>[] maps;
-    KafkaBus<IPv4Addr, ArpCacheEntry>[] busses;
+    MergedMapBus<IPv4Addr, ArpCacheEntry>[] busses;
     int benchmarkWrites;
     int warmupWrites;
     int writeRate;
+    int initialDelay; //in microseconds
     IPv4Addr[] ipSet;
     Random random;
     int noSleepCounter = 0;
 
     public MultiMapWriterNode(
             MergedMap<IPv4Addr, ArpCacheEntry>[] maps,
-            KafkaBus<IPv4Addr, ArpCacheEntry>[] busses,
+            MergedMapBus<IPv4Addr, ArpCacheEntry>[] busses,
             int benchmarkWrites,
             int warmupWrites,
             int writeRate,
             IPv4Addr[] ipSet,
-            Random theOracle
+            Random theOracle,
+            int initialDelay
     ) {
         this.maps = maps;
         this.busses = busses;
@@ -50,6 +52,7 @@ public class MultiMapWriterNode extends TimestampedNode {
         this.writeRate = writeRate;
         this.ipSet = ipSet;
         this.random = theOracle;
+        this.initialDelay = initialDelay;
     }
 
 
@@ -81,7 +84,7 @@ public class MultiMapWriterNode extends TimestampedNode {
     public void timestampedRun() {
         try {
             //Delay every writernode with rank * 100us
-            LockSupport.parkNanos(MPI.COMM_WORLD.getRank() * 100000);
+            LockSupport.parkNanos(MPI.COMM_WORLD.getRank() * initialDelay * 1000);
         } catch (Exception e) {
             log.error("Exception during delay sleep in writer node", e);
         }
@@ -139,8 +142,8 @@ public class MultiMapWriterNode extends TimestampedNode {
             log.error("Exception during delay sleep in shutdown", e);
         }
 
-        for (KafkaBus bus : busses) {
-            bus.shutdown();
+        for (MergedMapBus bus : busses) {
+            bus.close();
         }
     }
 

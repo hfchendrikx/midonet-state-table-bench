@@ -1,0 +1,3 @@
+#!/bin/bash
+export PDSH_SSH_ARGS_APPEND="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+watch -n10 pdsh -R ssh -l hendrikx -w ^./pdsh_hosts ntpdc -c loopinfo

@@ -1,0 +1,5 @@
+#!/bin/bash
+export PDSH_SSH_ARGS_APPEND="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+pdsh -R ssh -l hendrikx -w ^./pdsh_hosts sudo /etc/init.d/ntp stop
+pdsh -R ssh -l hendrikx -w ^./pdsh_hosts sudo ntpdate boss.isi.deterlab.net
+pdsh -R ssh -l hendrikx -w ^./pdsh_hosts sudo /etc/init.d/ntp start

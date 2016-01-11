@@ -1,0 +1,9 @@
+log4j.rootCategory=DEBUG, stdout
+log4j.category.org.apache.zookeeper = ERROR
+log4j.category.org.midonet.benchmarks = DEBUG
+log4j.category.org.midonet.benchmarks.latencyNodes = DEBUG
+log4j.category.org.midonet.cluster.data.storage = DEBUG
+log4j.category.status = DEBUG
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%p\t%d{ISO8601}\t%r\t%c\t[%t]\t%m%n

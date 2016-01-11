@@ -11,21 +11,22 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "final-raw-data/writerate-100k-300k-20nodes-2000maps-onlysummary"
+BASE_DIR = "jgroups-data/jgroups-netty-250-5000maps-20K"
 
 PLOT_CPU_CORES = True
 PLOT_NMON_MEMORY = True
 OVERLAY_JMX_CPU = True
 OVERLAY_JMX_MEMORY = True
-OVERLAY_JMX_GC = True
-OVERLAY_JMX_GC_TIME = True
+OVERLAY_JMX_GC = False
+OVERLAY_JMX_GC_TIME = False
+OVERLAY_JMX_GC_TIME_JAVA_8 = False
 OVERLAY_JMX_ZK_MAXLATENCY = True
 OVERLAY_JMX_ZK_PACKETS = True
 OVERLAY_NMON_NETWORK = True
 OVERLAY_NMON_NETWORK_INTERFACES = ['eth2','eth4', 'eth5']
 OVERLAY_NMON_DISK_RATE = True
 OVERLAY_NMON_DISK_BUSY = True
-OVERLAY_NMON_DISK_DISKS = ['sdb','sda']
+OVERLAY_NMON_DISK_DISKS = ['sda']
 
 JMXLOG_FILE_DIRECTORY = BASE_DIR + "/jmx";
 NMONLOG_FILE_DIRECTORY = BASE_DIR + "/nmon";
@@ -120,6 +121,20 @@ if OVERLAY_JMX_GC_TIME:
     plotTimeSpentInGC(data, "Kafka node 1", color = 'r')
     data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
     plotTimeSpentInGC(data, "Kafka node 3", color = 'b')
+    plt.ylabel("Time spent in GC during interval")
+    plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.legend()
+
+if OVERLAY_JMX_GC_TIME_JAVA_8:
+    plt.figure()
+    plt.title("Garbage Collection Time " + BASE_DIR)
+    plt.xlabel("Time since start of measurements [s]")
+    data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_2, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotTimeSpentInGC_Java8Default(data, "Kafka node 2", color = 'g')
+    data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_1, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotTimeSpentInGC_Java8Default(data, "Kafka node 1", color = 'r')
+    data = readKeyLog(JMXLOG_FILE_DIRECTORY + "/" + getFilename(LOG_JVM_KAFKA, CLUSTER_NODE_3, LOG_TYPE_GARBAGE_COLLECTION), name_length=2)
+    plotTimeSpentInGC_Java8Default(data, "Kafka node 3", color = 'b')
     plt.ylabel("Time spent in GC during interval")
     plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.legend()

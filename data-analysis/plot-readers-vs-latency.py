@@ -10,7 +10,7 @@ from os import listdir
 from os.path import isfile, join, isdir
 from matplotlib.ticker import MaxNLocator
 
-EXPERIMENT_DIR = "scratch/readers-vs-latency-10min-240/exp"
+EXPERIMENT_DIR = "jgroups-data/jgroups-readers-199/exp"
 
 #########################
 #Plot readers vs latency#
@@ -53,8 +53,8 @@ deviation = []
 max95th = []
 for experiment in experiments:
     print experiment
-    #grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries(EXPERIMENT_DIR + "/"+experiment))
-    grandSummary = calculateExperimentStatistics(EXPERIMENT_DIR + "/"+experiment)
+    grandSummary = calculateOverallExperimentSummary(readOldExperimentSummaries(EXPERIMENT_DIR + "/"+experiment))
+    #grandSummary = calculateExperimentStatistics(EXPERIMENT_DIR + "/"+experiment)
     readers.append(experiments[experiment]['readers'])
     latency.append(grandSummary['mean'])
     deviation.append(grandSummary['stddev'])
@@ -72,7 +72,7 @@ plt.plot(x, max95th, linestyle='', marker='D', color='g', label="Max 95th percen
 plt.errorbar(x, y, yerr=err, linestyle=' ', color='g', label="Average standard deviation")
 
 plt.legend(prop={'size':12}, loc='upper left')
-plt.ylim(0, 80)
-plt.xlim(0, 242)
+plt.ylim(-10, 10)
+plt.xlim(0, 210)
 plt.show()
 

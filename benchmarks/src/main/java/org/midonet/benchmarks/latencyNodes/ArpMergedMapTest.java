@@ -1,11 +1,10 @@
 package org.midonet.benchmarks.latencyNodes;
 
-import kafka.Kafka;
 import mpi.MPI;
 import mpi.MPIException;
 import org.midonet.cluster.data.storage.ArpMergedMap;
-import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.cluster.data.storage.MergedMapBus;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.ARP;
 import org.midonet.packets.IPv4Addr;
@@ -30,7 +29,7 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
     private TestObserver obs;
     private int readOffset = 0;
     private Random random;
-    private KafkaBus<IPv4Addr, ArpCacheEntry> kafkaBus;
+    private MergedMapBus<IPv4Addr, ArpCacheEntry> bus;
 
     public static IPv4Addr[] generateSetOfRandomIps(int size) {
         IPv4Addr[] list = new IPv4Addr[size];
@@ -70,12 +69,12 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
         }
     }
 
-    public ArpMergedMapTest(MergedMap<IPv4Addr, ArpCacheEntry> mapUnderTest, KafkaBus<IPv4Addr, ArpCacheEntry> kafkaBus, IPv4Addr[] ipSet, Random theOracle) {
+    public ArpMergedMapTest(MergedMap<IPv4Addr, ArpCacheEntry> mapUnderTest, MergedMapBus<IPv4Addr, ArpCacheEntry> bus, IPv4Addr[] ipSet, Random theOracle) {
         this.randomIpSet = ipSet;
         this.random = theOracle;
         this.map = mapUnderTest;
         this.obs = ArpMergedMap.arpMapObserver(mapUnderTest);
-        this.kafkaBus = kafkaBus;
+        this.bus = bus;
     }
 
     private long getCurrentTime() {
@@ -90,11 +89,19 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
 
     public long readEntry() {
         this.readOffset++;
-        ArpMergedMap.awaitForObserverEvents(obs, this.readOffset, 5000);
-        Tuple2 notif = (Tuple2<IPv4Addr, ArpCacheEntry>) obs.getOnNextEvents().get(this.readOffset - 1);
-        ArpCacheEntry entry = (ArpCacheEntry) notif._2();
 
-        return (this.getCurrentTime() - entry.stale);
+        try {
+            ArpMergedMap.awaitForObserverEvents(obs, this.readOffset, 5000);
+
+            MergedMap.MapUpdate<IPv4Addr, ArpCacheEntry> update = (MergedMap.MapUpdate<IPv4Addr, ArpCacheEntry>) obs.getOnNextEvents().get(this.readOffset - 1);
+            ArpCacheEntry entry = (ArpCacheEntry) update.newValue();
+
+            return (this.getCurrentTime() - entry.stale);
+        } catch (Exception e) {
+            log.error("obs.getOnNextEvents().size()={}", obs.getOnNextEvents().size());
+
+            throw e;
+        }
     }
 
     @Override
@@ -115,7 +122,7 @@ public class ArpMergedMapTest implements TestReader, TestWriter {
     }
 
     public void shutdown() {
-        kafkaBus.shutdown();
+        bus.close();
     }
 
     public void writeEntry() {

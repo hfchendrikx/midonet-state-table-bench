@@ -36,6 +36,7 @@ def plot_writerate_vs_latency(benchmark_directory, name, color='g', linestye='--
     print "Serie: " + name
     print "X:     " + str(x)
     print "99.99: " + str(max9999th)
+    print "95: " + str(max95th)
 
     plt.plot(x, y, linestyle=linestye, marker='o', color=color, label=name + r'Average of all nodes')
     plt.plot(x, max95th, linestyle='', marker='D', color=color, label=name + r'Max $95^{th}$ percentile')
@@ -51,11 +52,20 @@ plt.ylabel("Latency [ms]")
 #Plot here
 #plot_writerate_vs_latency("final-raw-data/writerate-2000maps-1k-100k-20nodes/exp",  "2000 maps", "blue")
 #plot_writerate_vs_latency("final-raw-data/writerate-100k-300k-20nodes-2000maps-onlysummary/exp",  "2000 maps", "red")
-plot_writerate_vs_latency("final-raw-data/writerate-transitionpoint/exp",  "", "green")
-plot_writerate_vs_latency("final-raw-data/final-transition-point-10min/exp",  "", "orange")
-plt.legend(prop={'size':12}, loc="lower right")
+#plot_writerate_vs_latency("final-raw-data/writerate-transitionpoint/exp",  "", "green")
 
-plt.ylim(0, 1100)
-plt.xlim(9000, 41000)
+#plot_writerate_vs_latency("jgroups-data/jgroups-writerate-80K-detailed/exp",  "", "orange")
+#plot_writerate_vs_latency("jgroups-data/jgroups-80k-equal-brokers/exp",  "", "blue")
+#plot_writerate_vs_latency("jgroups-data/jgroups-writerate-100K/exp",  "", "red")
+#plot_writerate_vs_latency("jgroups-data/jgroups-100K-NAKACK2/exp",  "", "magenta")
+#plot_writerate_vs_latency("jgroups-data/netty-2k-60k-2000maps-risingqueue/exp",  "", "green")
+#plot_writerate_vs_latency("jgroups-data/netty-nio-throughput/exp",  "", "yellow")
+
+plot_writerate_vs_latency("jgroups-data/jgruops-throughput-70K/exp",  "", "green")
+
+plt.legend(prop={'size':12}, loc="upper left")
+
+plt.ylim(0, 500)
+plt.xlim(0, 71000)
 fig.tight_layout();
 plt.show()

@@ -8,23 +8,18 @@ evaluationDependsOn(':openmpi')
 def mpiJar = file(project(':openmpi').ompiLocal.getAbsolutePath() +
                   "/lib/mpi.jar")
 
-def kafkajar1 = "${midonetPath}/cluster/build/libs/kafka_2.11-0.8.3-SNAPSHOT.jar"
-def kafkajar2 = "${midonetPath}/cluster/build/libs/kafka-clients-0.8.3-SNAPSHOT.jar"
-
 project.ext {
     scalaLangLevel = 'Scala 2.11.7'
-    midonetVersion = "2015.03-SNAPSHOT"
+    midonetVersion = "5.1-SNAPSHOT"
     midolmanJar = "${midonetPath}/midolman/build/libs/midolman-${midonetVersion}.jar"
     midoutilJar = "${midonetPath}/midonet-util/build/libs/midonet-util-${midonetVersion}.jar"
-    midoclusterJar = "${midonetPath}/cluster/build/libs/cluster-${midonetVersion}.jar"
+    midoclusterJar = "${midonetPath}/midonet-cluster/build/libs/midonet-cluster-${midonetVersion}.jar"
+    midonsdbJar = "${midonetPath}/nsdb-${midonetVersion}.jar"
 
     midonetDeps = files("${midolmanJar}",
+                        "${midonsdbJar}",
                         "${midoclusterJar}",
                         "${midoutilJar}")
-
-    midolmanDeps = files(
-            file("${midonetPath}/midolman/build/install/midolman/lib/")
-                    .listFiles() .findAll {it.name.endsWith('.jar')})
 }
 
 sourceSets.main.scala.srcDir "src/main/java"
@@ -75,30 +70,32 @@ dependencies {
     compile "io.reactivex:rxjava:1.0.0-rc.7"
     compile "javax.ws.rs:jsr311-api:1.1"
     compile "org.apache.commons:commons-lang3:3.3"
-    compile "org.apache.curator:curator-recipes:2.6.0"
+    compile "org.apache.curator:curator-framework:2.9.1"
+    compile "org.apache.curator:curator-recipes:2.9.1"
     compile "org.scala-lang:scala-library:2.11.2"
     compile "org.apache.curator:curator-test:2.7.1"
+    compile "org.jgroups:jgroups:3.6.6.Final"
+    compile "com.lmax:disruptor:3.3.0"
+    compile "io.netty:netty-all:4.0.27.Final"
 
-    compile "org.apache.kafka:kafka_2.11:0.8.2.1"
-    compile "org.apache.kafka:kafka-clients:0.8.2.1"
+    //compile "org.apache.kafka:kafka_2.11:0.8.2.1"
+    //compile "org.apache.kafka:kafka-clients:0.8.2.1"
     //compile "com.yammer.metrics:metrics-core:2.2.0"
     //compile "com.101tec:zkclient:0.5"
     //compile files("${kafkajar1}")
     //compile files("${kafkajar2}")
 
     compile "org.slf4j:slf4j-api:1.7.7"
-    compile "ch.qos.logback:logback-classic:1.0.1"
+    //compile "ch.qos.logback:logback-classic:1.0.1"
     compile dependencies.create("org.apache.zookeeper:zookeeper:3.4.6") {
         exclude group: 'jline', module: 'jline'
         exclude group: 'javax.jms', module: 'javax.jms'
         exclude group: 'com.sun.jdmk', module: 'jmxtools'
         exclude group: 'com.sun.jmx', module: 'jmxri'
         exclude group: 'io.netty', module: 'netty'
-        exclude group: 'org.slf4j', module: 'slf4j-log4j12'
-        exclude group: 'log4j', module: 'log4j'
     }
 
-    runtime midolmanDeps
+    //runtime midolmanDeps
     runtime "org.codehaus.jackson:jackson-core-asl:1.9.3"
     runtime "org.codehaus.jackson:jackson-mapper-asl:1.9.3"
 

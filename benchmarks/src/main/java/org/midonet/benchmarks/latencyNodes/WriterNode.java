@@ -63,7 +63,6 @@ public class WriterNode implements TestNode {
     public void run() {
         this.startBenchmark = System.currentTimeMillis();
 
-
         long writesPerInterval = Math.round(((this.writesPerSecond / 1000000.0) * this.writeInterval));
         long written = 0;
 

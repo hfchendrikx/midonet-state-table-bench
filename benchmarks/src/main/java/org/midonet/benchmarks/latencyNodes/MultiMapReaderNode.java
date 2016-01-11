@@ -3,23 +3,16 @@ package org.midonet.benchmarks.latencyNodes;
 import mpi.MPI;
 import org.midonet.benchmarks.MultiMergedMapTestBench;
 import org.midonet.benchmarks.StatUtils;
-import org.midonet.benchmarks.mpi.MPIBenchApp;
-import org.midonet.cluster.data.storage.ArpMergedMap;
-import org.midonet.cluster.data.storage.KafkaBus;
 import org.midonet.cluster.data.storage.MergedMap;
+import org.midonet.cluster.data.storage.MergedMapBus;
 import org.midonet.midolman.state.ArpCacheEntry;
 import org.midonet.packets.IPv4Addr;
-import org.midonet.util.reactivex.AwaitableObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.*;
-import rx.observers.TestObserver;
-import scala.Tuple2;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.LockSupport;
 
@@ -31,7 +24,7 @@ public class MultiMapReaderNode extends TimestampedNode {
     private static final Logger log =
             LoggerFactory.getLogger(MultiMapReaderNode.class);
     MergedMap<IPv4Addr, ArpCacheEntry>[] maps;
-    KafkaBus<IPv4Addr, ArpCacheEntry>[] busses;
+    MergedMapBus<IPv4Addr, ArpCacheEntry>[] busses;
     Subscription[] subscriptions;
     int benchmarkWrites;
     int warmupWrites;
@@ -44,7 +37,7 @@ public class MultiMapReaderNode extends TimestampedNode {
     public MultiMapReaderNode(
 
         MergedMap<IPv4Addr, ArpCacheEntry>[] maps,
-        KafkaBus<IPv4Addr, ArpCacheEntry>[] busses,
+        MergedMapBus<IPv4Addr, ArpCacheEntry>[] busses,
         int benchmarkWrites,
         int warmupWrites,
         int tableSize
@@ -59,6 +52,7 @@ public class MultiMapReaderNode extends TimestampedNode {
         this.warmupLatch = new CountDownLatch(this.maps.length);
         this.finishedLatch = new CountDownLatch(this.maps.length);
         this.latencies = new long[this.maps.length][benchmarkWrites];
+
 
         int totalWarmup = warmupWrites + tableSize;
         int totalExpected = totalWarmup + benchmarkWrites;
@@ -108,7 +102,7 @@ public class MultiMapReaderNode extends TimestampedNode {
 
         for(int i = 0;i<maps.length;i++) {
             this.subscriptions[i].unsubscribe();
-            this.busses[i].shutdown();
+            this.busses[i].close();
         }
     }
 

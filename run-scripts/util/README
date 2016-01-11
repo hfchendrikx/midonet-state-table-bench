@@ -1,0 +1,31 @@
+#######################
+#Settings             #
+#######################
+- Zookeeper
+  This is configured from the startup script in /proj/midonet/lattest/setupZK.sh
+- Kafka
+  This is partially configured from the startup script in /proj/midonet/lattest/setupKafka.sh
+  and from the file lattest/kafka-config/server.properties
+- Slurm
+  /proj/midonet/slurm/slurm.conf
+- Testbench
+  /users/hendrikx/application.conf
+
+#######################
+#Running an experiment#
+#######################
+
+- Update slurm configuration to contain the correct amount of benchnodes
+- Update pdsh_hosts to contain the correct benchnodes
+- Update pdsh_cluster_hosts to contain the correct clusternodes (should be right)
+- Update runbatch.sh to contain the right amount of nodes
+- Silence logging where neccesary
+
+
+1. Make sure clocks are in sync, with ntp-monitor or others
+2. Clear nmon and jmx logs with clear-experiment
+3. Put the correct application.conf in place
+4. run sbatch, logout and monitor test from test.out
+5. run pkg-experiment "name of tarfile" to package the experiment in /proj/midonet/lattest
+6. download and process
+

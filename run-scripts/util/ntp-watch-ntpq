@@ -1,0 +1,4 @@
+#!/bin/bash
+export PDSH_SSH_ARGS_APPEND="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ntpq -p
+pdsh -R ssh -l hendrikx -w ^./pdsh_hosts ntpq -p | grep boss
