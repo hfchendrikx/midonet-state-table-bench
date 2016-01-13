@@ -11,7 +11,7 @@ tmux send-keys "tail -f ~/test.out" C-m
 tmux select-pane -t 1
 tmux send-keys "tail -f ~/test.err" C-m
 tmux split-window -v
-tmux send-keys "tail -f ~/prerun.log" C-m
+tmux send-keys "tail -f ~/prerun-script.out" C-m
 
 # Set default window
 tmux select-window -t $SESSION:1

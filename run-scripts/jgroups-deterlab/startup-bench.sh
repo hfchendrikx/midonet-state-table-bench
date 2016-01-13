@@ -2,7 +2,9 @@
 
 # $1 experiment output file
 
-MAIN_DIR=/proj/midonet/lattest
+#Load settings
+SCRIPT_DIR=$( cd $( dirname "${BASH_SOURCE[0]}" ) && pwd )
+. $SCRIPT_DIR/settings.sh
 
 set -e
 
@@ -12,7 +14,7 @@ echo -e "# installing packages                #\n"
 echo -e "######################################\n"
 echo -e "\n"
 
-$MAIN_DIR/install-packages-bench.sh
+$SETUP_ROOT_DIR/install-packages-bench.sh
 
 sudo touch /etc/midonet_host_id.properties
 sudo chmod 777 /etc/midonet_host_id.properties
@@ -30,7 +32,7 @@ echo -e "\n"
  > $1
 
 #run test bench
-source $MAIN_DIR/testbench.sh > $1
+source $SETUP_ROOT_DIR/testbench.sh > $1
 
 echo -e "\n"
 echo -e "######################################\n"

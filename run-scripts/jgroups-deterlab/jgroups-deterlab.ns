@@ -1,0 +1,107 @@
+set ns [new Simulator]
+source tb_compat.tcl
+
+############ CONFIGURATION ############
+
+# Number of nodes on which the benchmarks code runs
+# CHANGE THE SLURM CONFIGURATION ACCORDINGLY IF YOU CHANGE THE NUMBER OF BENCH NODES
+set nrbenchnodes 20
+
+# Where is the directory with the startup/init scripts?
+set setup_directory_location "/proj/GROUP_NAME/exp/EXPERIMENT_NAME/setup"
+# Where do you want to store the start log of each node?
+set startlog_directory_location "/proj/GROUP_NAME/exp/EXPERIMENT_NAME/logs/start"
+# Where is the jmxtrans tar located?
+set jmxtrans_tar_location "/proj/midonet/tarfiles/jmxtrans-251-dist.tar.gz"
+
+set benchnodes_nodetype "dl380g3"
+#######################################
+
+set seperate_zookeeper_nodes 1
+set nrclusternodes 6 #Zookeeper + kafka nodes, do not change
+
+proc cluster_startup_command {start_zookeeper start_kafka zookeeper_id kafka_id init_ssd zookeeper_nodes  logfile} {
+  # $1 contains the number of testbench nodes
+  # $2 contains the number of cluster nodes
+  # $3 use oracle jvm
+  # $4 start zookeeper on this node
+  # $5 start kafka on this node
+  # $6 Zookeeper ID of this node
+  # $7 Kafka ID of this node
+  # $8 Init ssd
+  # $9...n (rest are the addresses of the zookeeper nodes)
+  global nrbenchnodes
+  global nrclusternodes
+  global setup_directory_location
+  global startlog_directory_location
+  return "$setup_directory_location/startup-cluster.sh $nrbenchnodes $nrclusternodes 0 $start_zookeeper $start_kafka $zookeeper_id $kafka_id $init_ssd $zookeeper_nodes >& $startlog_directory_location/$logfile.log"
+}
+
+# Cluster nodes
+set clusternode1 [$ns node]
+tb-set-node-os $clusternode1 Ubuntu1404-64-FileLi
+set clusternode2 [$ns node]
+tb-set-node-os $clusternode2 Ubuntu1404-64-FileLi
+set clusternode3 [$ns node]
+tb-set-node-os $clusternode3 Ubuntu1404-64-FileLi
+
+set zoo1 [$ns node]
+tb-set-node-os $zoo1 Ubuntu1404-64-FileLi
+set zoo2 [$ns node]
+tb-set-node-os $zoo2 Ubuntu1404-64-FileLi
+set zoo3 [$ns node]
+tb-set-node-os $zoo3 Ubuntu1404-64-FileLi
+
+
+tb-set-hardware $zoo1 dl380g3
+tb-set-hardware $zoo2 dl380g3
+tb-set-hardware $zoo3 dl380g3
+
+
+# Better hardware for cluster nodes
+tb-set-hardware $clusternode1 dl380g3
+tb-set-hardware $clusternode2 dl380g3
+tb-set-hardware $clusternode3 dl380g3
+
+#JMX Monitor node
+set jmxmonitor [$ns node]
+tb-set-node-os $jmxmonitor Ub1404x64-slurmMpi
+tb-set-node-tarfiles $jmxmonitor /usr/share/jmxtrans $jmxtrans_tar_location
+tb-set-node-startcmd $jmxmonitor "$setup_directory_location/jmx/auto-start-jmx.sh $seperate_zookeeper_nodes"
+
+#Put all nodes on one LAN
+set lanstr "$clusternode1 $clusternode2 $clusternode3 $jmxmonitor "
+if {$seperate_zookeeper_nodes} {
+  append lanstr "$zoo1 $zoo2 $zoo3 "
+}
+tb-set-sync-server $clusternode1
+
+###
+# Clusternodes running zookeepr and kafka
+###
+
+tb-set-node-startcmd $clusternode1 [cluster_startup_command 0 1 0 1 1 "zoo1 zoo2 zoo3" "clusternode1"]
+tb-set-node-startcmd $clusternode2 [cluster_startup_command 0 1 0 2 1 "zoo1 zoo2 zoo3" "clusternode2"]
+tb-set-node-startcmd $clusternode3 [cluster_startup_command 0 1 0 3 1 "zoo1 zoo2 zoo3" "clusternode3"]
+tb-set-node-startcmd $zoo1 [cluster_startup_command 1 0 1 0 0 "zoo1 zoo2 zoo3" "zoo1"]
+tb-set-node-startcmd $zoo2 [cluster_startup_command 1 0 2 0 0 "zoo1 zoo2 zoo3" "zoo2"]
+tb-set-node-startcmd $zoo3 [cluster_startup_command 1 0 3 0 0 "zoo1 zoo2 zoo3" "zoo3"]
+
+###
+# Testbench nodes
+#
+# REMEMBER TO CHANGE THE SLURM CONFIGURATION IF YOU CHANGE THE HARDWARE TYPE OF THE NODES
+###
+for {set i 1} {$i <= $nrbenchnodes} {incr i} {
+  set benchnode($i) [$ns node]
+  tb-set-node-os $benchnode($i) Ub1404x64-slurmMpi
+  tb-set-hardware $benchnode($i) $benchnodes_nodetype
+  append lanstr "$benchnode($i) "
+  tb-set-node-startcmd $benchnode($i) "$setup_directory_location/startup-bench.sh $startlog_directory_location/result_$i.log >& $startlog_directory_location/benchnode$i.log"
+}
+
+# Lans
+set lan0 [$ns make-lan "$lanstr" 1000000.0kb 0.0ms]
+
+$ns rtproto Static
+$ns run

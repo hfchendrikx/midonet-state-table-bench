@@ -11,7 +11,7 @@ from experimentreader import  *
 from jmxlogreader import *
 from nmonlogreader import *
 
-BASE_DIR = "jgroups-data/jgroups-netty-250-5000maps-20K"
+BASE_DIR = "jgroups-data/test"
 
 PLOT_CPU_CORES = True
 PLOT_NMON_MEMORY = True

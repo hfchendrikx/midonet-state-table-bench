@@ -12,8 +12,8 @@ LOG_DIR_PATH=$(readlink -f $LOG_DIR)
 echo "Taking log config files from: $LOG_DIR_PATH"
 echo "Configuring zookeeperhosts with mn-conf..."
 echo "zookeeper.zookeeper_hosts:\"zoo1:2181,zoo2:2181,zoo3:2181\"" | MIDO_ZOOKEEPER_HOSTS="zoo1:2181,zoo2:2181,zoo3:2181" mn-conf set -t default  
-echo "jgroups.heartbeat_timeout:3000s" | MIDO_ZOOKEEPER_HOSTS="zoo1:2181,zoo2:2181,zoo3:2181" mn-conf set -t default
-echo "jgroups.heartbeat_period:3000s" | MIDO_ZOOKEEPER_HOSTS="zoo1:2181,zoo2:2181,zoo3:2181" mn-conf set -t default
+#echo "jgroups.heartbeat_timeout:3000s" | MIDO_ZOOKEEPER_HOSTS="zoo1:2181,zoo2:2181,zoo3:2181" mn-conf set -t default
+#echo "jgroups.heartbeat_period:3000s" | MIDO_ZOOKEEPER_HOSTS="zoo1:2181,zoo2:2181,zoo3:2181" mn-conf set -t default
 
 echo "Running on $(hostname)"
 IFS='.' read -a HOSTNAME_PARTS <<< $(hostname)

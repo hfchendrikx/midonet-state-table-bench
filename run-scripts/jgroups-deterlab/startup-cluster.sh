@@ -9,7 +9,9 @@
 # $8 Init ssd
 # $9...n (rest are the addresses of the zookeeper nodes)
 
-MAIN_DIR=/proj/midonet/lattest
+#Load settings
+SCRIPT_DIR=$( cd $( dirname "${BASH_SOURCE[0]}" ) && pwd )
+. $SCRIPT_DIR/settings.sh
 
 PARAMS=("$@")
 NR_TESTBENCH_NODES=$1
@@ -29,7 +31,7 @@ ulimit -a
 
 set -e
 
-cd $MAIN_DIR
+cd $SETUP_ROOT_DIR
 
 echo -e "\n"
 echo -e "######################################\n"
@@ -38,7 +40,7 @@ echo -e "######################################\n"
 echo -e "\n"
 
 #Arguments: Use oracle jvm (1 or 0), Install zookeeper (1 or 0)
-$MAIN_DIR/install-packages-cluster.sh $USE_ORACLE_JVM $START_ZOOKEEPER
+$SETUP_ROOT_DIR/install-packages-cluster.sh $USE_ORACLE_JVM $START_ZOOKEEPER
 
 if [ $START_ZOOKEEPER -eq 1 ]; then
   echo -e "\n"
@@ -47,13 +49,13 @@ if [ $START_ZOOKEEPER -eq 1 ]; then
   echo -e "######################################\n"
   echo -e "\n"
 
-  $MAIN_DIR/setupZK.sh $ZOOKEEPER_SERVER_ID "${ZOOKEEPER_NODES[@]}"
+  $SETUP_ROOT_DIR/setupZK.sh $ZOOKEEPER_SERVER_ID "${ZOOKEEPER_NODES[@]}"
 fi
 
 if [ $INIT_SSD -eq 1 ]; then
   echo -e "SETTING UP SSD..."
   echo -e "\n\n\n...............SETTING UP SSD DISABLED (in startup-cluster.sh)............\n\n\n"
-  #$MAIN_DIR/setup-ssd.sh
+  #$SETUP_ROOT_DIR/setup-ssd.sh
 fi
 
 if [ "$ZOOKEEPER_SERVER_ID" = "1" ]; then
@@ -71,7 +73,7 @@ if [ $START_KAFKA -eq 1 ]; then
   echo -e "######################################\n"
   echo -e "\n"
 
-  sudo bash $MAIN_DIR/startBroker.sh $KAFKA_SERVER_ID
+  sudo bash $SETUP_ROOT_DIR/startBroker.sh $KAFKA_SERVER_ID
 fi
 
 echo -e "\n"

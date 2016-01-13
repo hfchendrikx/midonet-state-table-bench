@@ -1,3 +1,4 @@
 #!/bin/bash
 export PDSH_SSH_ARGS_APPEND="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+cd $( dirname "${BASH_SOURCE[0]}" )
 pdsh -R ssh -l hendrikx -w ^./pdsh_cluster_hosts $@

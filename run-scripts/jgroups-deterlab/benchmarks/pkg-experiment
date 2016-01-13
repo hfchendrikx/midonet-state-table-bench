@@ -1,0 +1,25 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd $( dirname "${BASH_SOURCE[0]}" ) && pwd )
+
+#Temporary directory needs to be accessible by all nodes (cluster, bench, jmx)
+TMP_DIR=$SCRIPT_DIR/pkg-temp-dir
+BENCHMARK_BATCH_OUTPUT=$SCRIPT_DIR/output/batch
+
+rm -f -r $TMP_DIR
+mkdir $TMP_DIR
+
+#copy jmx logs
+$SCRIPT_DIR/../util/pdsh-jmx cp -r /usr/share/jmxtrans/jmxtrans-251/logs $TMP_DIR/jmx
+
+#copy nmon logs
+mkdir $TMP_DIR/nmon
+$SCRIPT_DIR/../util/pdsh-cluster cp -r /var/log/nmon/. $TMP_DIR/nmon
+
+#copy experiments
+cp -r $BENCHMARK_BATCH_OUTPUT $TMP_DIR/exp
+
+#package
+tar -czvf $1.tgz -C $TMP_DIR .
+
+rm -f -r $TMP_DIR
